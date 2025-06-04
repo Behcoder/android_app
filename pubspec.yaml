@@ -38,6 +38,7 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
   google_fonts: ^6.2.1
+  carousel_slider: ^5.0.0
 
 dev_dependencies:
   flutter_test:
@@ -93,4 +94,14 @@ flutter:
   # see https://flutter.dev/to/font-from-package
 
   assets:
+    - assets/img/
+    - assets/fonts/
+
+  fonts:
+    - family: Vazirmatn
+      fonts:
+        - asset: assets/fonts/Vazirmatn-Regular.ttf
+        - asset: assets/fonts/Vazirmatn-Bold.ttf
+          weight: 700
+
     # اگر در آینده تصویر یا آیکون اضافه شد
