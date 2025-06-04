@@ -110,7 +110,8 @@ class CustomHeader extends StatelessWidget {
           ),
         ],
       ),
-      child: SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.only(top: 20.0),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16.0),
           child: Column(
