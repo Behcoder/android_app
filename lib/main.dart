@@ -5,10 +5,23 @@ import 'dart:convert';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 
+// ==========================================
+// [main.dart-main]
+// ==========================================
+// توضیحات: نقطه ورود برنامه
+// وابستگی‌ها: MyApp
+// ==========================================
 void main() {
   runApp(const MyApp());
 }
 
+// ==========================================
+// [main.dart-MyApp]
+// ==========================================
+// توضیحات: تنظیمات اصلی برنامه شامل تم، زبان و صفحه اصلی
+// وابستگی‌ها: MaterialApp, ThemeData, HomePage
+// نکات مهم: تنظیمات زبان فارسی و فونت Vazirmatn
+// ==========================================
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
@@ -64,6 +77,12 @@ class MyApp extends StatelessWidget {
   }
 }
 
+// ==========================================
+// [main.dart-CustomHeader]
+// ==========================================
+// توضیحات: هدر سفارشی صفحه اصلی شامل لوگو و جستجو
+// وابستگی‌ها: Image.asset, TextField
+// ==========================================
 class CustomHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
@@ -145,6 +164,12 @@ class CustomHeader extends StatelessWidget {
   }
 }
 
+// ==========================================
+// [main.dart-HomePage]
+// ==========================================
+// توضیحات: صفحه اصلی برنامه شامل اسلایدر، دسته‌بندی‌ها و محصولات
+// وابستگی‌ها: CustomHeader, BannerSlider, CategoryMenuSlider, FeaturedProducts, BestSellingProducts, NewProducts, Footer
+// ==========================================
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
 
@@ -172,6 +197,12 @@ class HomePage extends StatelessWidget {
   }
 }
 
+// ==========================================
+// [main.dart-Footer]
+// ==========================================
+// توضیحات: فوتر برنامه شامل لینک‌ها و اطلاعات تماس
+// وابستگی‌ها: Row, Column, TextButton
+// ==========================================
 class Footer extends StatelessWidget {
   const Footer({super.key});
 
@@ -253,6 +284,12 @@ class Footer extends StatelessWidget {
   }
 }
 
+// ==========================================
+// [main.dart-BannerSlider]
+// ==========================================
+// توضیحات: اسلایدر بنر با قابلیت اسلاید خودکار
+// وابستگی‌ها: CarouselSlider
+// ==========================================
 class BannerSlider extends StatefulWidget {
   const BannerSlider({super.key});
 
@@ -321,6 +358,12 @@ class _BannerSliderState extends State<BannerSlider> {
   }
 }
 
+// ==========================================
+// [main.dart-CategoryMenuSlider]
+// ==========================================
+// توضیحات: نمایش دسته‌بندی‌ها به صورت افقی
+// وابستگی‌ها: ListView.separated
+// ==========================================
 class CategoryMenuSlider extends StatelessWidget {
   const CategoryMenuSlider({super.key});
 
@@ -367,6 +410,12 @@ class CategoryMenuSlider extends StatelessWidget {
   }
 }
 
+// ==========================================
+// [main.dart-FeaturedProducts]
+// ==========================================
+// توضیحات: نمایش محصولات ویژه
+// وابستگی‌ها: ListView.separated
+// ==========================================
 class FeaturedProducts extends StatelessWidget {
   const FeaturedProducts({super.key});
 
@@ -468,6 +517,12 @@ class FeaturedProducts extends StatelessWidget {
   }
 }
 
+// ==========================================
+// [main.dart-BestSellingProducts]
+// ==========================================
+// توضیحات: نمایش محصولات پرفروش
+// وابستگی‌ها: GridView.builder
+// ==========================================
 class BestSellingProducts extends StatelessWidget {
   const BestSellingProducts({super.key});
 
@@ -590,6 +645,12 @@ class BestSellingProducts extends StatelessWidget {
   }
 }
 
+// ==========================================
+// [main.dart-NewProducts]
+// ==========================================
+// توضیحات: نمایش محصولات جدید
+// وابستگی‌ها: ListView.separated
+// ==========================================
 class NewProducts extends StatelessWidget {
   const NewProducts({super.key});
 
@@ -709,6 +770,12 @@ class NewProducts extends StatelessWidget {
   }
 }
 
+// ==========================================
+// [main.dart-CategoriesPage]
+// ==========================================
+// توضیحات: صفحه دسته‌بندی‌ها
+// وابستگی‌ها: GridView.builder, http
+// ==========================================
 class CategoriesPage extends StatefulWidget {
   const CategoriesPage({Key? key}) : super(key: key);
 
@@ -821,6 +888,12 @@ class _CategoriesPageState extends State<CategoriesPage> {
   }
 }
 
+// ==========================================
+// [main.dart-ProductsPage]
+// ==========================================
+// توضیحات: صفحه محصولات یک دسته‌بندی
+// وابستگی‌ها: ListView.builder, http
+// ==========================================
 class ProductsPage extends StatefulWidget {
   final int categoryId;
   final String categoryName;
@@ -854,13 +927,13 @@ class _ProductsPageState extends State<ProductsPage> {
       } else {
         setState(() {
           isLoading = false;
-          errorMsg = 'خطا در دریافت محصولات: \\${response.statusCode}';
+          errorMsg = 'خطا در دریافت محصولات: ${response.statusCode}';
         });
       }
     } catch (e) {
       setState(() {
         isLoading = false;
-        errorMsg = 'خطا در ارتباط با سرور: \\${e.toString()}';
+        errorMsg = 'خطا در ارتباط با سرور: ${e.toString()}';
       });
     }
   }
@@ -894,7 +967,7 @@ class _ProductsPageState extends State<ProductsPage> {
                                     )
                                   : const Icon(Icons.image_not_supported),
                               title: Text(p['name'] ?? '', style: const TextStyle(fontWeight: FontWeight.bold)),
-                              subtitle: Text(p['price'] != null ? 'قیمت: \\${p['price']} تومان' : ''),
+                              subtitle: Text(p['price'] != null ? 'قیمت: ${p['price']} تومان' : ''),
                               onTap: () {
                                 Navigator.push(
                                   context,
@@ -912,6 +985,12 @@ class _ProductsPageState extends State<ProductsPage> {
   }
 }
 
+// ==========================================
+// [main.dart-ProductDetailPage]
+// ==========================================
+// توضیحات: صفحه جزئیات محصول
+// وابستگی‌ها: CarouselSlider, http
+// ==========================================
 class ProductDetailPage extends StatefulWidget {
   final Map product;
   const ProductDetailPage({Key? key, required this.product}) : super(key: key);
