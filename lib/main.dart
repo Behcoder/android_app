@@ -107,7 +107,7 @@ class CustomHeader extends StatelessWidget {
               Row(
                 children: [
                   Image.asset(
-                    'assets/logo.png',
+                    'assets/img/logo.png',
                     height: 40,
                     fit: BoxFit.contain,
                   ),
