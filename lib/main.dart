@@ -183,7 +183,7 @@ class Footer extends StatelessWidget {
         color: Colors.blue.shade900,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
       ),
-      child: Column(
+        child: Column(
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -804,7 +804,7 @@ class _CategoriesPageState extends State<CategoriesPage> {
                                 child: Image.network(cat['image']['src'], height: 60, width: 60, fit: BoxFit.cover),
                               ),
                             const SizedBox(height: 8),
-                            Text(
+            Text(
                               cat['name'] ?? '',
                               style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                               textAlign: TextAlign.center,
