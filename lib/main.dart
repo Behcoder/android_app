@@ -79,12 +79,7 @@ class MyApp extends StatelessWidget {
         Locale('fa', ''),
       ],
       locale: const Locale('fa', ''),
-      home: const SafeArea(
-        child: Padding(
-          padding: EdgeInsets.only(top: 24.0),
-          child: HomePage(),
-        ),
-      ),
+      home: const HomePage(),
     );
   }
 }
@@ -189,22 +184,24 @@ class HomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: ListView(
-        padding: EdgeInsets.zero,
-        children: [
-          CustomHeader(),
-          const BannerSlider(),
-          const SizedBox(height: 16),
-          const CategoryMenuSlider(),
-          const SizedBox(height: 32),
-          const FeaturedProducts(),
-          const SizedBox(height: 32),
-          const BestSellingProducts(),
-          const SizedBox(height: 32),
-          const NewProducts(),
-          const SizedBox(height: 32),
-          const Footer(),
-        ],
+      body: SafeArea(
+        child: ListView(
+          padding: EdgeInsets.zero,
+          children: [
+            CustomHeader(),
+            const BannerSlider(),
+            const SizedBox(height: 16),
+            const CategoryMenuSlider(),
+            const SizedBox(height: 32),
+            const FeaturedProducts(),
+            const SizedBox(height: 32),
+            const BestSellingProducts(),
+            const SizedBox(height: 32),
+            const NewProducts(),
+            const SizedBox(height: 32),
+            const Footer(),
+          ],
+        ),
       ),
     );
   }
