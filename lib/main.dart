@@ -80,7 +80,10 @@ class MyApp extends StatelessWidget {
       ],
       locale: const Locale('fa', ''),
       home: const SafeArea(
-        child: HomePage(),
+        child: Padding(
+          padding: EdgeInsets.only(top: 24.0),
+          child: HomePage(),
+        ),
       ),
     );
   }
