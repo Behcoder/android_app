@@ -1,6 +1,6 @@
-# seify_app
+# android_app
 
-A new Flutter project.
+A Flutter mobile application project.
 
 ## Getting Started
 
