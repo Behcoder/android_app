@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:carousel_slider/carousel_slider.dart';
+import 'package:flutter/rendering.dart';
 
 // ==========================================
 // [main.dart-main]
@@ -53,6 +55,11 @@ class MyApp extends StatelessWidget {
           backgroundColor: Colors.white,
           foregroundColor: Colors.black,
           elevation: 1,
+          systemOverlayStyle: SystemUiOverlayStyle(
+            statusBarColor: Colors.transparent,
+            statusBarIconBrightness: Brightness.dark,
+            statusBarBrightness: Brightness.light,
+          ),
         ),
         cardTheme: CardThemeData(
           color: Colors.white,
@@ -72,7 +79,9 @@ class MyApp extends StatelessWidget {
         Locale('fa', ''),
       ],
       locale: const Locale('fa', ''),
-      home: const HomePage(),
+      home: const SafeArea(
+        child: HomePage(),
+      ),
     );
   }
 }
