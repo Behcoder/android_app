@@ -94,7 +94,7 @@ class CustomHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 120,
+      height: 80,
       decoration: BoxDecoration(
         color: Colors.white,
         boxShadow: [
@@ -109,46 +109,29 @@ class CustomHeader extends StatelessWidget {
         padding: const EdgeInsets.only(top: 20.0),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
+          child: Row(
             children: [
-              Row(
-                children: [
-                  Image.asset(
-                    'assets/img/logo.png',
-                    height: 40,
-                    fit: BoxFit.contain,
+              Image.asset(
+                'assets/img/logo.png',
+                height: 40,
+                fit: BoxFit.contain,
+              ),
+              SizedBox(width: 16),
+              Expanded(
+                child: Container(
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[100],
+                    borderRadius: BorderRadius.circular(20),
                   ),
-                  SizedBox(width: 16),
-                  Expanded(
-                    child: Container(
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: Colors.grey[100],
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: TextField(
-                        decoration: InputDecoration(
-                          hintText: 'جستجو...',
-                          prefixIcon: Icon(Icons.search),
-                          border: InputBorder.none,
-                          contentPadding: EdgeInsets.symmetric(horizontal: 16),
-                        ),
-                      ),
+                  child: TextField(
+                    decoration: InputDecoration(
+                      hintText: 'جستجو...',
+                      prefixIcon: Icon(Icons.search),
+                      border: InputBorder.none,
+                      contentPadding: EdgeInsets.symmetric(horizontal: 16),
                     ),
                   ),
-                ],
-              ),
-              SizedBox(height: 8),
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: [
-                    _buildCategoryItem('همه', true),
-                    _buildCategoryItem('جدیدترین', false),
-                    _buildCategoryItem('پرفروش‌ترین', false),
-                    _buildCategoryItem('تخفیف‌دار', false),
-                  ],
                 ),
               ),
             ],
@@ -194,8 +177,6 @@ class HomePage extends StatelessWidget {
             const CategoryMenuSlider(),
             const SizedBox(height: 32),
             const FeaturedProducts(),
-            const SizedBox(height: 32),
-            const BestSellingProducts(),
             const SizedBox(height: 32),
             const NewProducts(),
             const SizedBox(height: 32),
@@ -298,72 +279,31 @@ class Footer extends StatelessWidget {
 // [main.dart-BannerSlider]
 // ==========================================
 // توضیحات: اسلایدر بنر با قابلیت اسلاید خودکار
-// وابستگی‌ها: CarouselSlider
+// وابستگی‌ها: PageView.builder
 // ==========================================
-class BannerSlider extends StatefulWidget {
+class BannerSlider extends StatelessWidget {
   const BannerSlider({super.key});
 
   @override
-  State<BannerSlider> createState() => _BannerSliderState();
-}
-
-class _BannerSliderState extends State<BannerSlider> {
-  int _current = 0;
-  final List<String> banners = [
-    'بنر نمونه ۱',
-    'بنر نمونه ۲',
-    'بنر نمونه ۳',
-  ];
-
-  @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        CarouselSlider(
-          items: banners.map((text) {
-            return Container(
-              margin: const EdgeInsets.symmetric(horizontal: 8),
-              decoration: BoxDecoration(
-                color: Colors.green.shade100,
-                borderRadius: BorderRadius.circular(18),
+    return SizedBox(
+      height: 180,
+      child: PageView.builder(
+        controller: PageController(viewportFraction: 0.9),
+        itemCount: 3,
+        itemBuilder: (context, index) {
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: Image.asset(
+                'assets/img/banner/${index + 1}.png',
+                fit: BoxFit.cover,
               ),
-              height: 180,
-              child: Center(
-                child: Text(
-                  text,
-                  style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.green),
-                ),
-              ),
-            );
-          }).toList(),
-          options: CarouselOptions(
-            height: 180,
-            autoPlay: true,
-            enlargeCenterPage: true,
-            viewportFraction: 0.9,
-            onPageChanged: (index, reason) {
-              setState(() {
-                _current = index;
-              });
-            },
-          ),
-        ),
-        const SizedBox(height: 8),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: banners.asMap().entries.map((entry) {
-            return Container(
-              width: 8.0,
-              height: 8.0,
-              margin: const EdgeInsets.symmetric(horizontal: 4.0),
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: _current == entry.key ? Colors.green : Colors.grey.shade300,
-              ),
-            );
-          }).toList(),
-        ),
-      ],
+            ),
+          );
+        },
+      ),
     );
   }
 }
@@ -374,45 +314,132 @@ class _BannerSliderState extends State<BannerSlider> {
 // توضیحات: نمایش دسته‌بندی‌ها به صورت افقی
 // وابستگی‌ها: ListView.separated
 // ==========================================
-class CategoryMenuSlider extends StatelessWidget {
+class CategoryMenuSlider extends StatefulWidget {
   const CategoryMenuSlider({super.key});
 
   @override
+  State<CategoryMenuSlider> createState() => _CategoryMenuSliderState();
+}
+
+class _CategoryMenuSliderState extends State<CategoryMenuSlider> {
+  List categories = [];
+  bool isLoading = true;
+  String? errorMsg;
+
+  @override
+  void initState() {
+    super.initState();
+    fetchCategories();
+  }
+
+  Future<void> fetchCategories() async {
+    final url = Uri.parse('https://seify.ir/wp-json/wc/v3/products/categories?consumer_key=ck_278d4ac63be04448206d8aec329301bd58831670&consumer_secret=cs_c4d143188011db4cce3137dd7c046c435f18114b&per_page=100&parent=0');
+    try {
+      final response = await http.get(url);
+      if (response.statusCode == 200) {
+        setState(() {
+          categories = (json.decode(response.body) as List)
+              .where((cat) => cat['name']?.toString().toLowerCase() != 'test')
+              .toList();
+          isLoading = false;
+          errorMsg = null;
+        });
+      } else {
+        setState(() {
+          isLoading = false;
+          errorMsg = 'خطا در دریافت اطلاعات: ${response.statusCode}';
+        });
+      }
+    } catch (e) {
+      setState(() {
+        isLoading = false;
+        errorMsg = 'خطا در ارتباط با سرور: $e';
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final List<String> categories = [
-      'دسته ۱', 'دسته ۲', 'دسته ۳', 'دسته ۴', 'دسته ۵', 'دسته ۶',
-    ];
+    if (isLoading) {
+      return const SizedBox(
+        height: 110,
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (errorMsg != null) {
+      return SizedBox(
+        height: 110,
+        child: Center(child: Text(errorMsg!, style: const TextStyle(color: Colors.red))),
+      );
+    }
+
+    if (categories.isEmpty) {
+      return const SizedBox(
+        height: 110,
+        child: Center(child: Text('دسته‌بندی‌ای یافت نشد')),
+      );
+    }
+
     return SizedBox(
-      height: 110,
+      height: 130,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 12),
         itemCount: categories.length,
         separatorBuilder: (context, index) => const SizedBox(width: 12),
         itemBuilder: (context, index) {
-          return Column(
-            children: [
-              Container(
-                width: 64,
-                height: 64,
-                decoration: BoxDecoration(
-                  color: Colors.blue.shade50,
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.blue.shade200, width: 2),
-                ),
-                child: Center(
-                  child: Text(
-                    categories[index].substring(0, 2),
-                    style: const TextStyle(fontSize: 20, color: Colors.blue, fontWeight: FontWeight.bold),
+          final cat = categories[index];
+          return GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => ProductsPage(
+                    categoryId: cat['id'],
+                    categoryName: cat['name'],
                   ),
                 ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                categories[index],
-                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-              ),
-            ],
+              );
+            },
+            child: Column(
+              children: [
+                Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    color: Colors.blue.shade50,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.blue.shade200, width: 2),
+                  ),
+                  child: cat['image'] != null && cat['image']['src'] != null
+                      ? ClipRRect(
+                          borderRadius: BorderRadius.circular(40),
+                          child: Image.network(
+                            cat['image']['src'],
+                            fit: BoxFit.cover,
+                          ),
+                        )
+                      : Center(
+                          child: Text(
+                            cat['name'].toString().substring(0, 2),
+                            style: const TextStyle(fontSize: 24, color: Colors.blue, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                ),
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: 90,
+                  child: Text(
+                    cat['name'] ?? '',
+                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
           );
         },
       ),
@@ -521,134 +548,6 @@ class FeaturedProducts extends StatelessWidget {
               );
             },
           ),
-        ),
-      ],
-    );
-  }
-}
-
-// ==========================================
-// [main.dart-BestSellingProducts]
-// ==========================================
-// توضیحات: نمایش محصولات پرفروش
-// وابستگی‌ها: GridView.builder
-// ==========================================
-class BestSellingProducts extends StatelessWidget {
-  const BestSellingProducts({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'پرفروش‌ترین‌ها',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.blue.shade900,
-                ),
-              ),
-              TextButton(
-                onPressed: () {},
-                child: const Text('مشاهده همه'),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 16),
-        GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
-            childAspectRatio: 0.75,
-            crossAxisSpacing: 16,
-            mainAxisSpacing: 16,
-          ),
-          itemCount: 4,
-          itemBuilder: (context, index) {
-            return Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.grey.withOpacity(0.1),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  ClipRRect(
-                    borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-                    child: Container(
-                      height: 160,
-                      color: Colors.grey.shade200,
-                      child: Center(
-                        child: Icon(Icons.image, size: 48, color: Colors.grey.shade400),
-                      ),
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'نام محصول',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                            color: Colors.grey.shade800,
-                          ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 8),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              '۲۵۰,۰۰۰ تومان',
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.blue.shade700,
-                              ),
-                            ),
-                            Container(
-                              padding: const EdgeInsets.all(4),
-                              decoration: BoxDecoration(
-                                color: Colors.green.shade50,
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Text(
-                                'پرفروش',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.green.shade700,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            );
-          },
         ),
       ],
     );
@@ -873,7 +772,7 @@ class _CategoriesPageState extends State<CategoriesPage> {
                       child: Padding(
                         padding: const EdgeInsets.all(12),
                         child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             if (cat['image'] != null && cat['image']['src'] != null)
                               ClipRRect(
@@ -1378,5 +1277,36 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     } catch (e) {
       return dateStr;
     }
+  }
+}
+
+class SearchBar extends StatelessWidget {
+  const SearchBar({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      child: TextField(
+        decoration: InputDecoration(
+          hintText: 'جستجو...',
+          prefixIcon: const Icon(Icons.search),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: BorderSide(color: Colors.grey.shade300),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: BorderSide(color: Colors.grey.shade300),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: const BorderSide(color: Colors.blue),
+          ),
+          filled: true,
+          fillColor: Colors.grey.shade50,
+        ),
+      ),
+    );
   }
 }

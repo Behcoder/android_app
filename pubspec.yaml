@@ -96,6 +96,9 @@ flutter:
   assets:
     - assets/img/
     - assets/fonts/
+    - assets/img/banner/1.png
+    - assets/img/banner/2.png
+    - assets/img/banner/3.png
 
   fonts:
     - family: Vazirmatn
