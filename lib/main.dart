@@ -474,7 +474,7 @@ class _CategoryMenuSliderState extends State<CategoryMenuSlider> {
                   width: 90,
                   child: Text(
                     cat['name'] ?? '',
-                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                    style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
                     textAlign: TextAlign.center,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
@@ -807,9 +807,9 @@ class _CategoriesPageState extends State<CategoriesPage> {
                   ? const Center(child: Text('دسته‌بندی‌ای یافت نشد'))
                   : Row(
                       children: [
-                        // ستون راست - دسته‌های اصلی
+                        // ستون راست - دسته‌های اصلی (ثابت)
                         Container(
-                          width: 200,
+                          constraints: const BoxConstraints(minWidth: 140, maxWidth: 180),
                           decoration: BoxDecoration(
                             color: Colors.grey.shade100,
                             border: Border(
@@ -824,6 +824,7 @@ class _CategoriesPageState extends State<CategoriesPage> {
                               return ListTile(
                                 selected: isSelected,
                                 selectedTileColor: Colors.blue.shade50,
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                                 leading: cat['image'] != null && cat['image']['src'] != null
                                     ? Image.network(
                                         cat['image']['src'],
@@ -831,12 +832,16 @@ class _CategoriesPageState extends State<CategoriesPage> {
                                         height: 32,
                                         fit: BoxFit.cover,
                                       )
-                                    : Icon(Icons.category, color: isSelected ? Colors.blue : Colors.grey),
+                                    : Icon(Icons.category, 
+                                        color: isSelected ? Colors.blue : Colors.grey,
+                                        size: 24,
+                                      ),
                                 title: Text(
                                   cat['name'] ?? '',
                                   style: TextStyle(
                                     color: isSelected ? Colors.blue : Colors.black87,
                                     fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                    fontSize: 13,
                                   ),
                                 ),
                                 onTap: () {
@@ -849,16 +854,16 @@ class _CategoriesPageState extends State<CategoriesPage> {
                             },
                           ),
                         ),
-                        // ستون چپ - زیر دسته‌ها
+                        // ستون چپ - زیر دسته‌ها (دینامیک)
                         Expanded(
                           child: subCategories.isEmpty
                               ? const Center(child: Text('زیر دسته‌بندی‌ای یافت نشد'))
                               : GridView.builder(
-                                  padding: const EdgeInsets.all(16),
+                                  padding: const EdgeInsets.all(12),
                                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                                     crossAxisCount: 2,
-                                    crossAxisSpacing: 16,
-                                    mainAxisSpacing: 16,
+                                    crossAxisSpacing: 12,
+                                    mainAxisSpacing: 12,
                                     childAspectRatio: 0.8,
                                   ),
                                   itemCount: subCategories.length,
@@ -879,7 +884,7 @@ class _CategoriesPageState extends State<CategoriesPage> {
                                       child: Container(
                                         decoration: BoxDecoration(
                                           color: Colors.white,
-                                          borderRadius: BorderRadius.circular(16),
+                                          borderRadius: BorderRadius.circular(12),
                                           boxShadow: [
                                             BoxShadow(
                                               color: Colors.grey.withOpacity(0.1),
@@ -892,41 +897,41 @@ class _CategoriesPageState extends State<CategoriesPage> {
                                           crossAxisAlignment: CrossAxisAlignment.start,
                                           children: [
                                             ClipRRect(
-                                              borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                                              borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
                                               child: cat['image'] != null && cat['image']['src'] != null
                                                   ? Image.network(
                                                       cat['image']['src'],
-                                                      height: 120,
+                                                      height: 100,
                                                       width: double.infinity,
                                                       fit: BoxFit.cover,
                                                     )
                                                   : Container(
-                                                      height: 120,
+                                                      height: 100,
                                                       color: Colors.grey.shade200,
                                                       child: Center(
-                                                        child: Icon(Icons.category, size: 48, color: Colors.grey.shade400),
+                                                        child: Icon(Icons.category, size: 40, color: Colors.grey.shade400),
                                                       ),
                                                     ),
                                             ),
                                             Padding(
-                                              padding: const EdgeInsets.all(12),
+                                              padding: const EdgeInsets.all(8),
                                               child: Column(
                                                 crossAxisAlignment: CrossAxisAlignment.start,
                                                 children: [
                                                   Text(
                                                     cat['name'] ?? '',
                                                     style: const TextStyle(
-                                                      fontSize: 16,
+                                                      fontSize: 13,
                                                       fontWeight: FontWeight.bold,
                                                     ),
                                                     maxLines: 2,
                                                     overflow: TextOverflow.ellipsis,
                                                   ),
-                                                  const SizedBox(height: 8),
+                                                  const SizedBox(height: 4),
                                                   Text(
                                                     '${cat['count'] ?? 0} محصول',
                                                     style: TextStyle(
-                                                      fontSize: 14,
+                                                      fontSize: 12,
                                                       color: Colors.grey.shade600,
                                                     ),
                                                   ),
