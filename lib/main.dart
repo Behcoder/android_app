@@ -855,7 +855,7 @@ class _NewProductsState extends State<NewProducts> {
         final allProducts = json.decode(response.body);
         setState(() {
           products = allProducts;
-          randomProducts = getRandomItems(allProducts, 3);
+          randomProducts = getRandomItems(allProducts, 7);
           isLoading = false;
           errorMsg = null;
         });
