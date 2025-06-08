@@ -7,6 +7,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/rendering.dart';
 import 'dart:math';
+import 'dart:async';
 
 // ==========================================
 // [main.dart-main]
@@ -566,11 +567,45 @@ class _FeaturedProductsState extends State<FeaturedProducts> {
   bool isLoading = true;
   String? errorMsg;
   int? featuredCategoryId;
+  final ScrollController _scrollController = ScrollController();
+  Timer? _autoScrollTimer;
 
   @override
   void initState() {
     super.initState();
     fetchFeaturedCategory();
+    _startAutoScroll();
+  }
+
+  @override
+  void dispose() {
+    _autoScrollTimer?.cancel();
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _startAutoScroll() {
+    _autoScrollTimer = Timer.periodic(const Duration(seconds: 3), (timer) {
+      if (_scrollController.hasClients) {
+        final maxScroll = _scrollController.position.maxScrollExtent;
+        final currentScroll = _scrollController.offset;
+        final nextScroll = currentScroll + 132; // 120 (item width) + 12 (spacing)
+        
+        if (nextScroll >= maxScroll) {
+          _scrollController.animateTo(
+            0,
+            duration: const Duration(milliseconds: 500),
+            curve: Curves.easeInOut,
+          );
+        } else {
+          _scrollController.animateTo(
+            nextScroll,
+            duration: const Duration(milliseconds: 500),
+            curve: Curves.easeInOut,
+          );
+        }
+      }
+    });
   }
 
   Future<void> fetchFeaturedCategory() async {
@@ -692,106 +727,111 @@ class _FeaturedProductsState extends State<FeaturedProducts> {
         ),
         SizedBox(
           height: 200,
-          child: ListView.separated(
+          child: ListView.builder(
+            controller: _scrollController,
             scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            itemCount: products.length,
-            separatorBuilder: (context, index) => const SizedBox(width: 12),
+            itemCount: products.length * 2, // Double the count for infinite loop
             itemBuilder: (context, index) {
-              final product = products[index];
+              final actualIndex = index % products.length;
+              final product = products[actualIndex];
               final imageUrl = product['images']?.isNotEmpty == true ? product['images'][0]['src'] : null;
               final price = product['price'] != null ? double.tryParse(product['price']) : null;
               final regularPrice = product['regular_price'] != null ? double.tryParse(product['regular_price']) : null;
               final hasDiscount = regularPrice != null && price != null && regularPrice > price;
               
-              return GestureDetector(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => ProductDetailPage(product: product),
-                    ),
-                  );
-                },
-                child: Container(
-                  width: 120,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.grey.withOpacity(0.1),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
+              return Padding(
+                padding: const EdgeInsets.only(left: 12),
+                child: GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ProductDetailPage(product: product),
                       ),
-                    ],
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (imageUrl != null)
-                        ClipRRect(
-                          borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-                          child: Image.network(
-                            imageUrl,
+                    );
+                  },
+                  child: Container(
+                    width: 120,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.grey.withOpacity(0.1),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (imageUrl != null)
+                          ClipRRect(
+                            borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                            child: Image.network(
+                              imageUrl,
+                              height: 120,
+                              width: double.infinity,
+                              fit: BoxFit.cover,
+                            ),
+                          )
+                        else
+                          Container(
                             height: 120,
                             width: double.infinity,
-                            fit: BoxFit.cover,
-                          ),
-                        )
-                      else
-                        Container(
-                          height: 120,
-                          width: double.infinity,
-                          decoration: const BoxDecoration(
-                            color: Colors.grey,
-                            borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-                          ),
-                          child: const Icon(Icons.image, color: Colors.white, size: 40),
-                        ),
-                      Padding(
-                        padding: const EdgeInsets.all(8),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              product['name'] ?? '',
-                              style: const TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
-                              ),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
+                            decoration: const BoxDecoration(
+                              color: Colors.grey,
+                              borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
                             ),
-                            const SizedBox(height: 4),
-                            if (price != null)
-                              Row(
-                                children: [
-                                  Text(
-                                    '${price.toStringAsFixed(0)} تومان',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.bold,
-                                      color: hasDiscount ? Colors.red : Colors.black,
-                                    ),
-                                  ),
-                                  if (hasDiscount) ...[
-                                    const SizedBox(width: 4),
+                            child: const Icon(Icons.image, color: Colors.white, size: 40),
+                          ),
+                        Padding(
+                          padding: const EdgeInsets.all(8),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                product['name'] ?? '',
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 4),
+                              if (price != null)
+                                Row(
+                                  children: [
                                     Text(
-                                      '${regularPrice.toStringAsFixed(0)}',
-                                      style: const TextStyle(
-                                        fontSize: 10,
-                                        decoration: TextDecoration.lineThrough,
-                                        color: Colors.grey,
+                                      '${price.toStringAsFixed(0)} تومان',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                        color: hasDiscount ? Colors.red : Colors.black,
                                       ),
                                     ),
+                                    if (hasDiscount) ...[
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        '${regularPrice.toStringAsFixed(0)}',
+                                        style: const TextStyle(
+                                          fontSize: 10,
+                                          decoration: TextDecoration.lineThrough,
+                                          color: Colors.grey,
+                                        ),
+                                      ),
+                                    ],
                                   ],
-                                ],
-                              ),
-                          ],
+                                ),
+                            ],
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               );
