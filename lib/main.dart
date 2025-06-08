@@ -6,6 +6,7 @@ import 'dart:convert';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/rendering.dart';
+import 'dart:math';
 
 // ==========================================
 // [main.dart-main]
@@ -808,16 +809,98 @@ class _FeaturedProductsState extends State<FeaturedProducts> {
 // توضیحات: نمایش محصولات جدید
 // وابستگی‌ها: ListView.separated
 // ==========================================
-class NewProducts extends StatelessWidget {
+class NewProducts extends StatefulWidget {
   const NewProducts({super.key});
 
   @override
+  State<NewProducts> createState() => _NewProductsState();
+}
+
+class _NewProductsState extends State<NewProducts> {
+  List products = [];
+  List randomProducts = [];
+  bool isLoading = true;
+  String? errorMsg;
+
+  @override
+  void initState() {
+    super.initState();
+    fetchLatestProducts();
+  }
+
+  List<T> getRandomItems<T>(List<T> list, int count) {
+    if (list.length <= count) return list;
+    
+    // Use current date as seed for random number generation
+    final now = DateTime.now();
+    final seed = now.year * 10000 + now.month * 100 + now.day;
+    final random = Random(seed);
+    
+    final shuffled = List<T>.from(list);
+    for (var i = shuffled.length - 1; i > 0; i--) {
+      final j = random.nextInt(i + 1);
+      final temp = shuffled[i];
+      shuffled[i] = shuffled[j];
+      shuffled[j] = temp;
+    }
+    
+    return shuffled.take(count).toList();
+  }
+
+  Future<void> fetchLatestProducts() async {
+    final url = Uri.parse('https://seify.ir/wp-json/wc/v3/products?consumer_key=ck_278d4ac63be04448206d8aec329301bd58831670&consumer_secret=cs_c4d143188011db4cce3137dd7c046c435f18114b&per_page=100&orderby=date&order=desc');
+    try {
+      final response = await http.get(url);
+      if (response.statusCode == 200) {
+        final allProducts = json.decode(response.body);
+        setState(() {
+          products = allProducts;
+          randomProducts = getRandomItems(allProducts, 3);
+          isLoading = false;
+          errorMsg = null;
+        });
+      } else {
+        setState(() {
+          isLoading = false;
+          errorMsg = 'خطا در دریافت محصولات: ${response.statusCode}';
+        });
+      }
+    } catch (e) {
+      setState(() {
+        isLoading = false;
+        errorMsg = 'خطا در ارتباط با سرور: $e';
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    if (isLoading) {
+      return const SizedBox(
+        height: 200,
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (errorMsg != null) {
+      return SizedBox(
+        height: 200,
+        child: Center(child: Text(errorMsg!, style: const TextStyle(color: Colors.red))),
+      );
+    }
+
+    if (randomProducts.isEmpty) {
+      return const SizedBox(
+        height: 200,
+        child: Center(child: Text('محصولی یافت نشد')),
+      );
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -829,97 +912,129 @@ class NewProducts extends StatelessWidget {
                 ),
               ),
               TextButton(
-                onPressed: () {},
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const ProductsPage(
+                        categoryId: null,
+                        categoryName: 'محصولات پیشنهادی',
+                      ),
+                    ),
+                  );
+                },
                 child: const Text('مشاهده همه'),
               ),
             ],
           ),
         ),
-        const SizedBox(height: 16),
-        ListView.separated(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          itemCount: 3,
-          separatorBuilder: (context, index) => const SizedBox(height: 16),
-          itemBuilder: (context, index) {
-            return Container(
-              height: 120,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.grey.withOpacity(0.1),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Row(
-                children: [
-                  ClipRRect(
-                    borderRadius: const BorderRadius.horizontal(right: Radius.circular(16)),
-                    child: Container(
-                      width: 120,
-                      color: Colors.grey.shade200,
-                      child: Center(
-                        child: Icon(Icons.image, size: 48, color: Colors.grey.shade400),
-                      ),
+        SizedBox(
+          height: 200,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            itemCount: randomProducts.length,
+            separatorBuilder: (context, index) => const SizedBox(width: 12),
+            itemBuilder: (context, index) {
+              final product = randomProducts[index];
+              final imageUrl = product['images']?.isNotEmpty == true ? product['images'][0]['src'] : null;
+              final price = product['price'] != null ? double.tryParse(product['price']) : null;
+              final regularPrice = product['regular_price'] != null ? double.tryParse(product['regular_price']) : null;
+              final hasDiscount = regularPrice != null && price != null && regularPrice > price;
+              
+              return GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ProductDetailPage(product: product),
                     ),
+                  );
+                },
+                child: Container(
+                  width: 120,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.grey.withOpacity(0.1),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
                   ),
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.all(12),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'نام محصول',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w500,
-                              color: Colors.grey.shade800,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (imageUrl != null)
+                        ClipRRect(
+                          borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                          child: Image.network(
+                            imageUrl,
+                            height: 120,
+                            width: double.infinity,
+                            fit: BoxFit.cover,
+                          ),
+                        )
+                      else
+                        Container(
+                          height: 120,
+                          width: double.infinity,
+                          decoration: const BoxDecoration(
+                            color: Colors.grey,
+                            borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                          ),
+                          child: const Icon(Icons.image, color: Colors.white, size: 40),
+                        ),
+                      Padding(
+                        padding: const EdgeInsets.all(8),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              product['name'] ?? '',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
                             ),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                '۲۵۰,۰۰۰ تومان',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.blue.shade700,
-                                ),
-                              ),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: Colors.blue.shade50,
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Text(
-                                  'جدید',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.blue.shade700,
+                            const SizedBox(height: 4),
+                            if (price != null)
+                              Row(
+                                children: [
+                                  Text(
+                                    '${price.toStringAsFixed(0)} تومان',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                      color: hasDiscount ? Colors.red : Colors.black,
+                                    ),
                                   ),
-                                ),
+                                  if (hasDiscount) ...[
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      '${regularPrice.toStringAsFixed(0)}',
+                                      style: const TextStyle(
+                                        fontSize: 10,
+                                        decoration: TextDecoration.lineThrough,
+                                        color: Colors.grey,
+                                      ),
+                                    ),
+                                  ],
+                                ],
                               ),
-                            ],
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
+                    ],
                   ),
-                ],
-              ),
-            );
-          },
+                ),
+              );
+            },
+          ),
         ),
       ],
     );
