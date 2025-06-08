@@ -569,6 +569,7 @@ class _FeaturedProductsState extends State<FeaturedProducts> {
   int? featuredCategoryId;
   final ScrollController _scrollController = ScrollController();
   Timer? _autoScrollTimer;
+  bool _scrollingForward = true; // Added to track scroll direction
 
   @override
   void initState() {
@@ -589,21 +590,51 @@ class _FeaturedProductsState extends State<FeaturedProducts> {
       if (_scrollController.hasClients) {
         final maxScroll = _scrollController.position.maxScrollExtent;
         final currentScroll = _scrollController.offset;
-        final nextScroll = currentScroll + 132; // 120 (item width) + 12 (spacing)
-        
-        if (nextScroll >= maxScroll) {
-          _scrollController.animateTo(
-            0,
-            duration: const Duration(milliseconds: 500),
-            curve: Curves.easeInOut,
-          );
+
+        double nextScroll;
+        if (_scrollingForward) {
+          nextScroll = currentScroll + 132; // 120 (item width) + 12 (padding/spacing)
+          if (nextScroll >= maxScroll) {
+            _scrollingForward = false; // Change direction
+            final bounceOffset = 20.0;
+            _scrollController.animateTo(
+              maxScroll + bounceOffset, // Overshoot
+              duration: const Duration(milliseconds: 200), // Quick overshoot
+              curve: Curves.easeOut,
+            ).then((_) {
+              _scrollController.animateTo(
+                maxScroll, // Bounce back
+                duration: const Duration(milliseconds: 300), // Slower bounce back
+                curve: Curves.easeIn,
+              );
+            });
+            return;
+          }
         } else {
-          _scrollController.animateTo(
-            nextScroll,
-            duration: const Duration(milliseconds: 500),
-            curve: Curves.easeInOut,
-          );
+          nextScroll = currentScroll - 132; // Scroll backward
+          if (nextScroll <= 0) {
+            _scrollingForward = true; // Change direction
+            final bounceOffset = 20.0;
+            _scrollController.animateTo(
+              -bounceOffset, // Overshoot
+              duration: const Duration(milliseconds: 200), // Quick overshoot
+              curve: Curves.easeOut,
+            ).then((_) {
+              _scrollController.animateTo(
+                0, // Bounce back
+                duration: const Duration(milliseconds: 300), // Slower bounce back
+                curve: Curves.easeIn,
+              );
+            });
+            return;
+          }
         }
+
+        _scrollController.animateTo(
+          nextScroll,
+          duration: const Duration(milliseconds: 500),
+          curve: Curves.easeInOut,
+        );
       }
     });
   }
@@ -732,17 +763,16 @@ class _FeaturedProductsState extends State<FeaturedProducts> {
             scrollDirection: Axis.horizontal,
             physics: const BouncingScrollPhysics(),
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            itemCount: products.length * 2, // Double the count for infinite loop
+            itemCount: products.length,
             itemBuilder: (context, index) {
-              final actualIndex = index % products.length;
-              final product = products[actualIndex];
+              final product = products[index]; // Use original index as we are now bouncing
               final imageUrl = product['images']?.isNotEmpty == true ? product['images'][0]['src'] : null;
               final price = product['price'] != null ? double.tryParse(product['price']) : null;
               final regularPrice = product['regular_price'] != null ? double.tryParse(product['regular_price']) : null;
               final hasDiscount = regularPrice != null && price != null && regularPrice > price;
               
               return Padding(
-                padding: const EdgeInsets.only(left: 12),
+                padding: const EdgeInsets.symmetric(horizontal: 6), // Adjusted padding for consistent spacing
                 child: GestureDetector(
                   onTap: () {
                     Navigator.push(
@@ -1344,22 +1374,12 @@ class _ProductsPageState extends State<ProductsPage> {
   void initState() {
     super.initState();
     fetchProducts();
-    _scrollController.addListener(_onScroll);
   }
 
   @override
   void dispose() {
     _scrollController.dispose();
     super.dispose();
-  }
-
-  void _onScroll() {
-    if (_scrollController.position.pixels == _scrollController.position.maxScrollExtent) {
-      if (!isLoading && hasMore) {
-        page++;
-        fetchProducts();
-      }
-    }
   }
 
   Future<void> fetchProducts() async {
