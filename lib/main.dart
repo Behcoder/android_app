@@ -364,6 +364,7 @@ class CategoryMenu extends StatefulWidget {
 
 class _CategoryMenuState extends State<CategoryMenu> {
   List menuItems = [];
+  Map<int, String> categoryImages = {};
   bool isLoading = true;
   String? errorMsg;
 
@@ -374,27 +375,72 @@ class _CategoryMenuState extends State<CategoryMenu> {
   }
 
   Future<void> fetchMenu() async {
-    final url = Uri.parse('https://seify.ir/wp-json/menus/v1/menus/slider-app-menu');
+    // Try both menu endpoints
+    final urls = [
+      'https://seify.ir/wp-json/menus/v1/menus/slider-app-menu',
+      'https://seify.ir/wp-json/menus/v1/menus/منوی-اسلایدر-اپ'
+    ];
+    
+    for (var menuUrl in urls) {
+      try {
+        print('Trying menu URL: $menuUrl');
+        final url = Uri.parse(menuUrl);
+        final response = await http.get(url);
+        print('Response status: ${response.statusCode}');
+        print('Response body: ${response.body}');
+        
+        if (response.statusCode == 200) {
+          final data = json.decode(response.body);
+          if (data['items'] != null && data['items'].isNotEmpty) {
+            print('Found menu items: ${data['items']}');
+    setState(() {
+              menuItems = data['items'];
+              isLoading = false;
+              errorMsg = null;
+            });
+            
+            // Fetch category images
+            for (var item in menuItems) {
+              print('Processing menu item: $item');
+              if (item['object'] == 'category' && item['object_id'] != null) {
+                print('Fetching image for category ID: ${item['object_id']}');
+                await fetchCategoryImage(item['object_id']);
+              }
+            }
+            return; // Exit if successful
+          }
+        }
+      } catch (e) {
+        print('Error with URL $menuUrl: $e');
+      }
+    }
+    
+    // If we get here, no menu was found
+    setState(() {
+      isLoading = false;
+      errorMsg = 'منویی یافت نشد';
+    });
+  }
+
+  Future<void> fetchCategoryImage(int categoryId) async {
+    final url = Uri.parse('https://seify.ir/wp-json/wc/v3/products/categories/$categoryId?consumer_key=ck_278d4ac63be04448206d8aec329301bd58831670&consumer_secret=cs_c4d143188011db4cce3137dd7c046c435f18114b');
     try {
       final response = await http.get(url);
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-    setState(() {
-          menuItems = data['items'] ?? [];
-          isLoading = false;
-          errorMsg = null;
-        });
+        print('Category Data for ID $categoryId: $data'); // Debug print for category data
+        if (data['image'] != null && data['image']['src'] != null) {
+          setState(() {
+            categoryImages[categoryId] = data['image']['src'];
+          });
+        } else {
+          print('No image found for category ID: $categoryId'); // Debug print for missing image
+        }
       } else {
-        setState(() {
-          isLoading = false;
-          errorMsg = 'خطا در دریافت منو: ${response.statusCode}';
-        });
+        print('Category API Error for ID $categoryId: ${response.statusCode}'); // Debug print for error
       }
     } catch (e) {
-      setState(() {
-        isLoading = false;
-        errorMsg = 'خطا در ارتباط با سرور: $e';
-      });
+      print('Category API Exception for ID $categoryId: $e'); // Debug print for exception
     }
   }
 
@@ -430,6 +476,9 @@ class _CategoryMenuState extends State<CategoryMenu> {
         separatorBuilder: (context, index) => const SizedBox(width: 16),
         itemBuilder: (context, index) {
           final item = menuItems[index];
+          final categoryId = item['object_id'];
+          final imageUrl = categoryId != null ? categoryImages[categoryId] : null;
+          
           return GestureDetector(
             onTap: () {
               if (item['object'] == 'category') {
@@ -460,11 +509,22 @@ class _CategoryMenuState extends State<CategoryMenu> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(
-                    Icons.category,
-                    size: 32,
-                    color: Colors.blue.shade700,
-                  ),
+                  if (imageUrl != null)
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.network(
+                        imageUrl,
+                        width: 48,
+                        height: 48,
+                        fit: BoxFit.cover,
+                      ),
+                    )
+                  else
+                    Icon(
+                      Icons.category,
+                      size: 32,
+                      color: Colors.blue.shade700,
+                    ),
                   const SizedBox(height: 8),
                   Text(
                     item['title'] ?? '',
@@ -578,21 +638,21 @@ class _FeaturedProductsState extends State<FeaturedProducts> {
   Widget build(BuildContext context) {
     if (isLoading) {
       return const SizedBox(
-        height: 280,
+        height: 200,
         child: Center(child: CircularProgressIndicator()),
       );
     }
 
     if (errorMsg != null) {
       return SizedBox(
-        height: 280,
+        height: 200,
         child: Center(child: Text(errorMsg!, style: const TextStyle(color: Colors.red))),
       );
     }
 
     if (products.isEmpty) {
       return const SizedBox(
-        height: 280,
+        height: 200,
         child: Center(child: Text('محصول ویژه‌ای یافت نشد')),
       );
     }
@@ -601,16 +661,15 @@ class _FeaturedProductsState extends State<FeaturedProducts> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
+              const Text(
                 'محصولات ویژه',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
-                  color: Colors.blue.shade900,
                 ),
               ),
               TextButton(
@@ -630,16 +689,20 @@ class _FeaturedProductsState extends State<FeaturedProducts> {
             ],
           ),
         ),
-        const SizedBox(height: 16),
         SizedBox(
-          height: 280,
+          height: 200,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 16),
             itemCount: products.length,
-            separatorBuilder: (context, index) => const SizedBox(width: 16),
+            separatorBuilder: (context, index) => const SizedBox(width: 12),
             itemBuilder: (context, index) {
               final product = products[index];
+              final imageUrl = product['images']?.isNotEmpty == true ? product['images'][0]['src'] : null;
+              final price = product['price'] != null ? double.tryParse(product['price']) : null;
+              final regularPrice = product['regular_price'] != null ? double.tryParse(product['regular_price']) : null;
+              final hasDiscount = regularPrice != null && price != null && regularPrice > price;
+              
               return GestureDetector(
                 onTap: () {
                   Navigator.push(
@@ -650,7 +713,7 @@ class _FeaturedProductsState extends State<FeaturedProducts> {
                   );
                 },
                 child: Container(
-                  width: 160,
+                  width: 120,
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(16),
@@ -665,47 +728,65 @@ class _FeaturedProductsState extends State<FeaturedProducts> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      ClipRRect(
-                        borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-                        child: product['images'] != null && product['images'].isNotEmpty
-                            ? Image.network(
-                                product['images'][0]['src'],
-                                height: 160,
-                                width: double.infinity,
-                                fit: BoxFit.cover,
-                              )
-                            : Container(
-                                height: 160,
-                                color: Colors.grey.shade200,
-                                child: Center(
-                                  child: Icon(Icons.image, size: 48, color: Colors.grey.shade400),
-                                ),
-                              ),
-                      ),
+                      if (imageUrl != null)
+                        ClipRRect(
+                          borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                          child: Image.network(
+                            imageUrl,
+                            height: 120,
+                            width: double.infinity,
+                            fit: BoxFit.cover,
+                          ),
+                        )
+                      else
+                        Container(
+                          height: 120,
+                          width: double.infinity,
+                          decoration: const BoxDecoration(
+                            color: Colors.grey,
+                            borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                          ),
+                          child: const Icon(Icons.image, color: Colors.white, size: 40),
+                        ),
                       Padding(
-                        padding: const EdgeInsets.all(12),
+                        padding: const EdgeInsets.all(8),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
                               product['name'] ?? '',
-                              style: TextStyle(
-                                fontSize: 14,
+                              style: const TextStyle(
+                                fontSize: 12,
                                 fontWeight: FontWeight.w500,
-                                color: Colors.grey.shade800,
                               ),
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
                             ),
-                            const SizedBox(height: 8),
-                            Text(
-                              '${product['price'] ?? '0'} تومان',
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.blue.shade700,
+                            const SizedBox(height: 4),
+                            if (price != null)
+                              Row(
+                                children: [
+                                  Text(
+                                    '${price.toStringAsFixed(0)} تومان',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                      color: hasDiscount ? Colors.red : Colors.black,
+                                    ),
+                                  ),
+                                  if (hasDiscount) ...[
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      '${regularPrice.toStringAsFixed(0)}',
+                                      style: const TextStyle(
+                                        fontSize: 10,
+                                        decoration: TextDecoration.lineThrough,
+                                        color: Colors.grey,
+                                      ),
+                                    ),
+                                  ],
+                                ],
                               ),
-                            ),
                           ],
                         ),
                       ),
@@ -1084,9 +1165,14 @@ class _CategoriesPageState extends State<CategoriesPage> {
 // وابستگی‌ها: ListView.builder, http
 // ==========================================
 class ProductsPage extends StatefulWidget {
-  final int categoryId;
+  final int? categoryId;
   final String categoryName;
-  const ProductsPage({Key? key, required this.categoryId, required this.categoryName}) : super(key: key);
+
+  const ProductsPage({
+    super.key,
+    required this.categoryId,
+    required this.categoryName,
+  });
 
   @override
   State<ProductsPage> createState() => _ProductsPageState();
@@ -1096,20 +1182,54 @@ class _ProductsPageState extends State<ProductsPage> {
   List products = [];
   bool isLoading = true;
   String? errorMsg;
+  int page = 1;
+  bool hasMore = true;
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
     fetchProducts();
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels == _scrollController.position.maxScrollExtent) {
+      if (!isLoading && hasMore) {
+        page++;
+        fetchProducts();
+      }
+    }
   }
 
   Future<void> fetchProducts() async {
-    final url = Uri.parse('https://seify.ir/wp-json/wc/v3/products?consumer_key=ck_278d4ac63be04448206d8aec329301bd58831670&consumer_secret=cs_c4d143188011db4cce3137dd7c046c435f18114b&per_page=100&category=${widget.categoryId}');
+    if (isLoading) return;
+
+    setState(() {
+      isLoading = true;
+    });
+
+    String url = 'https://seify.ir/wp-json/wc/v3/products?consumer_key=ck_278d4ac63be04448206d8aec329301bd58831670&consumer_secret=cs_c4d143188011db4cce3137dd7c046c435f18114b&per_page=10&page=$page';
+    
+    if (widget.categoryId != null) {
+      url += '&category=${widget.categoryId}';
+    } else if (widget.categoryName == 'محصولات ویژه') {
+      url += '&featured=true';
+    }
+
     try {
-      final response = await http.get(url);
+      final response = await http.get(Uri.parse(url));
       if (response.statusCode == 200) {
+        final newProducts = json.decode(response.body) as List;
         setState(() {
-          products = json.decode(response.body);
+          products.addAll(newProducts);
+          hasMore = newProducts.length == 10;
           isLoading = false;
           errorMsg = null;
         });
@@ -1120,9 +1240,9 @@ class _ProductsPageState extends State<ProductsPage> {
         });
       }
     } catch (e) {
-    setState(() {
+      setState(() {
         isLoading = false;
-        errorMsg = 'خطا در ارتباط با سرور: ${e.toString()}';
+        errorMsg = 'خطا در ارتباط با سرور: $e';
       });
     }
   }
