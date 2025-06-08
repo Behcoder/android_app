@@ -821,12 +821,11 @@ class NewProducts extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'جدیدترین محصولات',
+              const Text(
+                'محصولات پیشنهادی',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
-                  color: Colors.blue.shade900,
                 ),
               ),
               TextButton(
