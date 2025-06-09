@@ -4,10 +4,14 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:carousel_slider/carousel_slider.dart';
+import 'package:flutter_carousel_widget/flutter_carousel_widget.dart';
 import 'package:flutter/rendering.dart';
 import 'dart:math';
 import 'dart:async';
+import 'package:url_launcher/url_launcher.dart';
+import 'constants/app_texts.dart';
+import 'pages/static_content_page.dart';
+import 'pages/contact_us_page.dart';
 
 // ==========================================
 // [main.dart-main]
@@ -161,7 +165,7 @@ class CustomHeader extends StatelessWidget {
 // [main.dart-HomePage]
 // ==========================================
 // توضیحات: صفحه اصلی برنامه شامل اسلایدر، دسته‌بندی‌ها و محصولات
-// وابستگی‌ها: CustomHeader, BannerSlider, CategoryMenuSlider, FeaturedProducts, BestSellingProducts, NewProducts, Footer
+// وابستگی‌ها: CustomHeader, BannerSlider, CategoryMenu, FeaturedProducts, NewProducts, Footer
 // ==========================================
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -175,7 +179,22 @@ class HomePage extends StatelessWidget {
             children: [
               CustomHeader(),
               BannerSlider(),
-              CategoryMenu(),
+              // CategoryMenu(), // Removed CategoryMenu
+              // New section for Parent Categories
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: Text(
+                    'دسته‌بندی‌های اصلی',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+              ParentCategoryGrid(),
               FeaturedProducts(),
               NewProducts(),
             ],
@@ -222,8 +241,9 @@ class Footer extends StatelessWidget {
                   MaterialPageRoute(builder: (context) => const CategoriesPage()),
                 );
               }),
-              _buildFooterItem(Icons.shopping_cart, 'سبد خرید', () {
-                // TODO: Navigate to cart
+              _buildFooterItem(Icons.photo_library, 'گالری تصاویر', () {
+                // TODO: Navigate to gallery page
+                print('Navigate to gallery page');
               }),
               _buildFooterItem(Icons.info_outline, 'درباره ما', () {
                 showModalBottomSheet(
@@ -248,16 +268,37 @@ class Footer extends StatelessWidget {
                         ),
                         const SizedBox(height: 24),
                         _buildAboutItem(Icons.info_outline, 'درباره ما', () {
-                          // TODO: Navigate to about us
+                          Navigator.pop(context);
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const StaticContentPage(
+                                title: 'درباره ما',
+                                content: AppTexts.aboutUs,
+                              ),
+                            ),
+                          );
                         }),
                         _buildAboutItem(Icons.phone, 'تماس با ما', () {
-                          // TODO: Navigate to contact us
-                        }),
-                        _buildAboutItem(Icons.gavel, 'قوانین و مقررات', () {
-                          // TODO: Navigate to terms
+                          Navigator.pop(context);
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const ContactUsPage(),
+                            ),
+                          );
                         }),
                         _buildAboutItem(Icons.privacy_tip, 'حریم خصوصی', () {
-                          // TODO: Navigate to privacy
+                          Navigator.pop(context);
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const StaticContentPage(
+                                title: 'حریم خصوصی',
+                                content: AppTexts.privacyPolicy,
+                              ),
+                            ),
+                          );
                         }),
                         const SizedBox(height: 24),
                       ],
@@ -342,204 +383,6 @@ class BannerSlider extends StatelessWidget {
               child: Image.asset(
                 'assets/img/banner/${index + 1}.png',
                 fit: BoxFit.cover,
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
-}
-
-// ==========================================
-// [main.dart-CategoryMenu]
-// ==========================================
-// توضیحات: نمایش دسته‌بندی‌ها به صورت افقی
-// وابستگی‌ها: ListView.separated
-// ==========================================
-class CategoryMenu extends StatefulWidget {
-  const CategoryMenu({super.key});
-
-  @override
-  State<CategoryMenu> createState() => _CategoryMenuState();
-}
-
-class _CategoryMenuState extends State<CategoryMenu> {
-  List menuItems = [];
-  Map<int, String> categoryImages = {};
-  bool isLoading = true;
-  String? errorMsg;
-
-  @override
-  void initState() {
-    super.initState();
-    fetchMenu();
-  }
-
-  Future<void> fetchMenu() async {
-    // Try both menu endpoints
-    final urls = [
-      'https://seify.ir/wp-json/menus/v1/menus/slider-app-menu',
-      'https://seify.ir/wp-json/menus/v1/menus/منوی-اسلایدر-اپ'
-    ];
-    
-    for (var menuUrl in urls) {
-      try {
-        print('Trying menu URL: $menuUrl');
-        final url = Uri.parse(menuUrl);
-        final response = await http.get(url);
-        print('Response status: ${response.statusCode}');
-        print('Response body: ${response.body}');
-        
-        if (response.statusCode == 200) {
-          final data = json.decode(response.body);
-          if (data['items'] != null && data['items'].isNotEmpty) {
-            print('Found menu items: ${data['items']}');
-    setState(() {
-              menuItems = data['items'];
-              isLoading = false;
-              errorMsg = null;
-            });
-            
-            // Fetch category images
-            for (var item in menuItems) {
-              print('Processing menu item: $item');
-              if (item['object'] == 'category' && item['object_id'] != null) {
-                print('Fetching image for category ID: ${item['object_id']}');
-                await fetchCategoryImage(item['object_id']);
-              }
-            }
-            return; // Exit if successful
-          }
-        }
-      } catch (e) {
-        print('Error with URL $menuUrl: $e');
-      }
-    }
-    
-    // If we get here, no menu was found
-    setState(() {
-      isLoading = false;
-      errorMsg = 'منویی یافت نشد';
-    });
-  }
-
-  Future<void> fetchCategoryImage(int categoryId) async {
-    final url = Uri.parse('https://seify.ir/wp-json/wc/v3/products/categories/$categoryId?consumer_key=ck_278d4ac63be04448206d8aec329301bd58831670&consumer_secret=cs_c4d143188011db4cce3137dd7c046c435f18114b');
-    try {
-      final response = await http.get(url);
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        print('Category Data for ID $categoryId: $data'); // Debug print for category data
-        if (data['image'] != null && data['image']['src'] != null) {
-          setState(() {
-            categoryImages[categoryId] = data['image']['src'];
-          });
-        } else {
-          print('No image found for category ID: $categoryId'); // Debug print for missing image
-        }
-      } else {
-        print('Category API Error for ID $categoryId: ${response.statusCode}'); // Debug print for error
-      }
-    } catch (e) {
-      print('Category API Exception for ID $categoryId: $e'); // Debug print for exception
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (isLoading) {
-      return const SizedBox(
-        height: 100,
-        child: Center(child: CircularProgressIndicator()),
-      );
-    }
-
-    if (errorMsg != null) {
-      return SizedBox(
-        height: 100,
-        child: Center(child: Text(errorMsg!, style: const TextStyle(color: Colors.red))),
-      );
-    }
-
-    if (menuItems.isEmpty) {
-      return const SizedBox(
-        height: 100,
-        child: Center(child: Text('منویی یافت نشد')),
-      );
-    }
-
-    return SizedBox(
-      height: 100,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        itemCount: menuItems.length,
-        separatorBuilder: (context, index) => const SizedBox(width: 16),
-        itemBuilder: (context, index) {
-          final item = menuItems[index];
-          final categoryId = item['object_id'];
-          final imageUrl = categoryId != null ? categoryImages[categoryId] : null;
-          
-          return GestureDetector(
-            onTap: () {
-              if (item['object'] == 'category') {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => ProductsPage(
-                      categoryId: item['object_id'],
-                      categoryName: item['title'],
-                    ),
-                  ),
-                );
-              }
-            },
-            child: Container(
-              width: 100,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.grey.withOpacity(0.1),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  if (imageUrl != null)
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: Image.network(
-                        imageUrl,
-                        width: 48,
-                        height: 48,
-                        fit: BoxFit.cover,
-                      ),
-                    )
-                  else
-                    Icon(
-                      Icons.category,
-                      size: 32,
-                      color: Colors.blue.shade700,
-                    ),
-                  const SizedBox(height: 8),
-                  Text(
-                    item['title'] ?? '',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      color: Colors.grey.shade800,
-                    ),
-                    textAlign: TextAlign.center,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
               ),
             ),
           );
@@ -1677,87 +1520,48 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
               if (widget.product['images'] != null && widget.product['images'].isNotEmpty)
                 Column(
                   children: [
-                    CarouselSlider(
-                      options: CarouselOptions(
-                        height: 300,
-                        viewportFraction: 1.0,
-                        enlargeCenterPage: false,
-                        onPageChanged: (index, reason) {
-                          setState(() {
-                            _currentImageIndex = index;
-                          });
-                        },
-                      ),
-                      items: widget.product['images'].map<Widget>((image) {
-                        return GestureDetector(
-                          onTap: () {
-                            showDialog(
-                              context: context,
-                              builder: (context) => Dialog(
-                                child: Stack(
-                                  children: [
-                                    InteractiveViewer(
-                                      child: Image.network(
-                                        image['src'],
-                                        fit: BoxFit.contain,
+                    FlutterCarousel(
+                      items: widget.product['images'].map((image) {
+                        return Builder(
+                          builder: (BuildContext context) {
+                            return Container(
+                              width: double.infinity,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(16),
+                                child: Image.network(
+                                  image['src'],
+                                  fit: BoxFit.cover,
+                                  loadingBuilder: (context, child, loadingProgress) {
+                                    if (loadingProgress == null) return child;
+                                    return Center(
+                                      child: CircularProgressIndicator(
+                                        value: loadingProgress.expectedTotalBytes != null
+                                            ? loadingProgress.cumulativeBytesLoaded /
+                                                loadingProgress.expectedTotalBytes!
+                                            : null,
                                       ),
-                                    ),
-                                    Positioned(
-                                      top: 8,
-                                      right: 8,
-                                      child: IconButton(
-                                        icon: const Icon(Icons.close, color: Colors.white),
-                                        onPressed: () => Navigator.pop(context),
-                                      ),
-                                    ),
-                                  ],
+                                    );
+                                  },
                                 ),
                               ),
                             );
                           },
-                          child: Container(
-                            width: double.infinity,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(16),
-                              child: Image.network(
-                                image['src'],
-                                fit: BoxFit.cover,
-                                loadingBuilder: (context, child, loadingProgress) {
-                                  if (loadingProgress == null) return child;
-                                  return Center(
-                                    child: CircularProgressIndicator(
-                                      value: loadingProgress.expectedTotalBytes != null
-                                          ? loadingProgress.cumulativeBytesLoaded /
-                                              loadingProgress.expectedTotalBytes!
-                                          : null,
-                                    ),
-                                  );
-                                },
-                              ),
-                            ),
-                          ),
                         );
                       }).toList(),
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-                      children: widget.product['images'].asMap().entries.map((entry) {
-                        return Container(
-                          width: 8.0,
-                          height: 8.0,
-                          margin: const EdgeInsets.symmetric(horizontal: 4.0),
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: Theme.of(context).primaryColor.withOpacity(
-                              _currentImageIndex == entry.key ? 0.9 : 0.4,
-                            ),
-                          ),
-                        );
-                      }).toList(),
+                      options: CarouselOptions(
+                        height: 300,
+                        viewportFraction: 1.0,
+                        enableInfiniteScroll: true,
+                        autoPlay: true,
+                        autoPlayInterval: const Duration(seconds: 3),
+                        autoPlayAnimationDuration: const Duration(milliseconds: 800),
+                        autoPlayCurve: Curves.fastOutSlowIn,
+                        enlargeCenterPage: false,
+                        scrollDirection: Axis.horizontal,
+                      ),
                     ),
                   ],
                 ),
@@ -1897,5 +1701,158 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     } catch (e) {
       return dateStr;
     }
+  }
+}
+
+// ==========================================
+// [main.dart-ParentCategoryGrid]
+// ==========================================
+// توضیحات: نمایش دسته‌بندی‌های اصلی (بدون زیردسته) با تصویر
+// وابستگی‌ها: ListView.builder
+// ==========================================
+class ParentCategoryGrid extends StatefulWidget {
+  const ParentCategoryGrid({super.key});
+
+  @override
+  State<ParentCategoryGrid> createState() => _ParentCategoryGridState();
+}
+
+class _ParentCategoryGridState extends State<ParentCategoryGrid> {
+  List categories = [];
+  bool isLoading = true;
+  String? errorMsg;
+
+  @override
+  void initState() {
+    super.initState();
+    fetchParentCategories();
+  }
+
+  Future<void> fetchParentCategories() async {
+    final url = Uri.parse(
+        'https://seify.ir/wp-json/wc/v3/products/categories?consumer_key=ck_278d4ac63be04448206d8aec329301bd58831670&consumer_secret=cs_c4d143188011db4cce3137dd7c046c435f18114b&parent=0');
+    try {
+      final response = await http.get(url);
+      if (response.statusCode == 200) {
+        setState(() {
+          categories = json.decode(response.body);
+          isLoading = false;
+          errorMsg = null;
+        });
+      } else {
+        setState(() {
+          isLoading = false;
+          errorMsg = 'خطا در دریافت دسته‌بندی‌ها: ${response.statusCode}';
+        });
+      }
+    } catch (e) {
+      setState(() {
+        isLoading = false;
+        errorMsg = 'خطا در ارتباط با سرور: $e';
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (isLoading) {
+      return const SizedBox(
+        height: 100,
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (errorMsg != null) {
+      return SizedBox(
+        height: 100,
+        child: Center(
+            child: Text(errorMsg!, style: const TextStyle(color: Colors.red))),
+      );
+    }
+
+    if (categories.isEmpty) {
+      return const SizedBox(
+        height: 100,
+        child: Center(child: Text('دسته‌بندی اصلی یافت نشد')),
+      );
+    }
+
+    return SizedBox(
+      height: 100, // Adjust height as needed
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        itemCount: categories.length,
+        separatorBuilder: (context, index) => const SizedBox(width: 16),
+        itemBuilder: (context, index) {
+          final category = categories[index];
+          final imageUrl = category['image'] != null &&
+                  category['image']['src'] != null
+              ? category['image']['src']
+              : null;
+
+          return GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => ProductsPage(
+                    categoryId: category['id'],
+                    categoryName: category['name'],
+                  ),
+                ),
+              );
+            },
+            child: Container(
+              width: 100, // Same width as CategoryMenu items
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.grey.withOpacity(0.1),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  if (imageUrl != null)
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.network(
+                        imageUrl,
+                        width: 48,
+                        height: 48,
+                        fit: BoxFit.cover,
+                      ),
+                    )
+                  else
+                    Icon(
+                      Icons.category, // Default icon for categories without image
+                      size: 32,
+                      color: Colors.blue.shade700,
+                    ),
+                  const SizedBox(height: 8),
+                  Text(
+                    category['name'] ?? '',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.grey.shade800,
+                    ),
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
   }
 }
