@@ -12,6 +12,9 @@ import 'package:url_launcher/url_launcher.dart';
 import 'constants/app_texts.dart';
 import 'pages/static_content_page.dart';
 import 'pages/contact_us_page.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
+import 'pages/no_internet_page.dart';
+import 'pages/error_page.dart';
 
 // ==========================================
 // [main.dart-main]
@@ -85,8 +88,61 @@ class MyApp extends StatelessWidget {
         Locale('fa', ''),
       ],
       locale: const Locale('fa', ''),
-      home: const HomePage(),
+      home: const ConnectivityWrapper(),
     );
+  }
+}
+
+class ConnectivityWrapper extends StatefulWidget {
+  const ConnectivityWrapper({super.key});
+
+  @override
+  State<ConnectivityWrapper> createState() => _ConnectivityWrapperState();
+}
+
+class _ConnectivityWrapperState extends State<ConnectivityWrapper> {
+  bool _isConnected = true;
+  String? _errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkConnectivity();
+    _setupConnectivityListener();
+  }
+
+  Future<void> _checkConnectivity() async {
+    try {
+      final result = await Connectivity().checkConnectivity();
+      setState(() {
+        _isConnected = result != ConnectivityResult.none;
+        _errorMessage = null;
+      });
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'خطا در بررسی اتصال اینترنت';
+      });
+    }
+  }
+
+  void _setupConnectivityListener() {
+    Connectivity().onConnectivityChanged.listen((ConnectivityResult result) {
+      setState(() {
+        _isConnected = result != ConnectivityResult.none;
+        _errorMessage = null;
+      });
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_errorMessage != null) {
+      return ErrorPage(
+        message: _errorMessage,
+        onRetry: _checkConnectivity,
+      );
+    }
+    return _isConnected ? const HomePage() : const NoInternetPage();
   }
 }
 
@@ -494,7 +550,7 @@ class _FeaturedProductsState extends State<FeaturedProducts> {
         );
         
         if (featuredCategory != null) {
-          setState(() {
+    setState(() {
             featuredCategoryId = featuredCategory['id'];
           });
           fetchFeaturedProducts();
@@ -1690,7 +1746,14 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   }
 
   String _parseHtmlString(String htmlString) {
-    return htmlString.replaceAll(RegExp(r'<[^>]*>'), '');
+    return htmlString
+        .replaceAll(RegExp(r'<[^>]*>'), '')
+        .replaceAll('&nbsp;', ' ')
+        .replaceAll('&amp;', '&')
+        .replaceAll('&lt;', '<')
+        .replaceAll('&gt;', '>')
+        .replaceAll('&quot;', '"')
+        .replaceAll('&#39;', "'");
   }
 
   String _formatDate(String? dateStr) {
@@ -1817,7 +1880,7 @@ class _ParentCategoryGridState extends State<ParentCategoryGrid> {
                 ],
               ),
               child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   if (imageUrl != null)
                     ClipRRect(
@@ -1836,7 +1899,7 @@ class _ParentCategoryGridState extends State<ParentCategoryGrid> {
                       color: Colors.blue.shade700,
                     ),
                   const SizedBox(height: 8),
-                  Text(
+            Text(
                     category['name'] ?? '',
                     style: TextStyle(
                       fontSize: 12,
@@ -1846,10 +1909,10 @@ class _ParentCategoryGridState extends State<ParentCategoryGrid> {
                     textAlign: TextAlign.center,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
             ),
+          ],
+        ),
+      ),
           );
         },
       ),

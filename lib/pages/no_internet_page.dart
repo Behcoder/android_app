@@ -18,39 +18,12 @@ class NoInternetPage extends StatelessWidget {
               height: 200,
               repeat: true,
             ),
-            const SizedBox(height: 24),
-            // پیام خطا
+            const SizedBox(height: 20),
             const Text(
-              'اینترنت قطع شده است',
+              'اتصال اینترنت خود را بررسی کنید',
               style: TextStyle(
-                fontSize: 20,
+                fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: Colors.red,
-              ),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'لطفاً اتصال اینترنت خود را بررسی کنید',
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.grey,
-              ),
-            ),
-            const SizedBox(height: 24),
-            // دکمه تلاش مجدد
-            ElevatedButton.icon(
-              onPressed: () {
-                Navigator.pop(context);
-              },
-              icon: const Icon(Icons.refresh),
-              label: const Text('تلاش مجدد'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue.shade900,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 24,
-                  vertical: 12,
-                ),
               ),
             ),
           ],
