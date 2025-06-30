@@ -15,6 +15,7 @@ import 'pages/contact_us_page.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'pages/no_internet_page.dart';
 import 'pages/error_page.dart';
+import 'pages/gallery_page.dart';
 
 // ==========================================
 // [main.dart-main]
@@ -298,8 +299,10 @@ class Footer extends StatelessWidget {
                 );
               }),
               _buildFooterItem(Icons.photo_library, 'گالری تصاویر', () {
-                // TODO: Navigate to gallery page
-                print('Navigate to gallery page');
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const GalleryPage()),
+                );
               }),
               _buildFooterItem(Icons.info_outline, 'درباره ما', () {
                 showModalBottomSheet(
