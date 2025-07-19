@@ -1,4 +1,4 @@
-name: seify_app
+name: test_app
 description: "A new Flutter project."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
@@ -19,7 +19,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 version: 1.0.0+1
 
 environment:
-  sdk: '>=3.2.3 <4.0.0'
+  sdk: ^3.8.0
 
 # Dependencies specify other packages that your package needs in order to work.
 # To automatically upgrade your package dependencies to the latest versions
@@ -30,24 +30,10 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  http: ^1.1.0
-  flutter_localizations:
-    sdk: flutter
-  flutter_carousel_widget: ^2.3.0
-  html: ^0.15.4
-  url_launcher: ^6.2.2
-  carousel_slider: ^4.2.1
-  cupertino_icons: ^1.0.2
-  google_fonts: ^6.1.0
-  mailer: ^6.1.0
-  shared_preferences: ^2.2.2
-  intl: ^0.20.2
-  connectivity_plus: ^5.0.2
-  lottie: ^2.7.0
-  flutter_launcher_icons: ^0.14.4
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
+  cupertino_icons: ^1.0.8
 
 dev_dependencies:
   flutter_test:
@@ -58,7 +44,7 @@ dev_dependencies:
   # activated in the `analysis_options.yaml` file located at the root of your
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
-  flutter_lints: ^2.0.0
+  flutter_lints: ^5.0.0
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -101,30 +87,3 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
-
-  assets:
-    - assets/img/
-    - assets/img/banner/1.png
-    - assets/img/banner/2.png
-    - assets/img/banner/3.png
-    - assets/img/ui 1.png
-    - assets/img/logo.png
-    - assets/img/gallery/general/DSC_1037.jpg
-    - assets/img/gallery/general/DSC_1040.jpg
-    - assets/img/gallery/general/DSC_1043.jpg
-    - assets/img/gallery/general/DSC_1046.jpg
-    - assets/img/gallery/products/DSC_1052.jpg
-    - assets/img/gallery/products/DSC_1054.jpg
-    - assets/img/gallery/products/DSC_1068.jpg
-    - assets/fonts/
-    - assets/icon/
-    - assets/animations/
-
-  fonts:
-    - family: Vazirmatn
-      fonts:
-        - asset: assets/fonts/Vazirmatn-Regular.ttf
-        - asset: assets/fonts/Vazirmatn-Bold.ttf
-          weight: 700
-
-    # اگر در آینده تصویر یا آیکون اضافه شد
