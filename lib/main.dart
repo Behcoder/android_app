@@ -44,6 +44,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'سیفی مارکت',
+      debugShowCheckedModeBanner: false,
       theme: ThemeData(
         // This is the theme of your application.
         //
@@ -89,9 +90,16 @@ class MyApp extends StatelessWidget {
         GlobalCupertinoLocalizations.delegate,
       ],
       supportedLocales: const [
+        Locale('fa', 'IR'),
         Locale('fa', ''),
       ],
-      locale: const Locale('fa', ''),
+      locale: const Locale('fa', 'IR'),
+      builder: (context, child) {
+        return Directionality(
+          textDirection: TextDirection.rtl,
+          child: child!,
+        );
+      },
       home: const ConnectivityWrapper(),
     );
   }
@@ -158,7 +166,7 @@ class _ConnectivityWrapperState extends State<ConnectivityWrapper> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Scaffold(
+      return Scaffold(
         body: Center(
           child: CircularProgressIndicator(),
         ),
@@ -216,7 +224,7 @@ class CustomHeader extends StatelessWidget {
           child: Row(
             children: [
               Image.asset(
-                'assets/img/logo.png',
+                'assets/icon/app_icon.png',
                 height: 40,
                 fit: BoxFit.contain,
               ),
@@ -270,7 +278,7 @@ class HomePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
+    return Scaffold(
       body: SafeArea(
         child: SingleChildScrollView(
           child: Column(
@@ -295,6 +303,25 @@ class HomePage extends StatelessWidget {
               ParentCategoryGrid(),
               FeaturedProducts(),
               NewProducts(),
+              // Version display
+              Container(
+                width: double.infinity,
+                padding: EdgeInsets.symmetric(vertical: 16),
+                margin: EdgeInsets.only(top: 8),
+                decoration: BoxDecoration(
+                  color: Color(0xFFF5F5F5), // خیلی ملایم طوسی
+                ),
+                child: Center(
+                  child: Text(
+                    'ورژن 1.5.58',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Color(0xFF666666),
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+                ),
+              ),
             ],
           ),
         ),
@@ -1129,9 +1156,14 @@ class _CategoriesPageState extends State<CategoriesPage> {
       if (response.statusCode == 200) {
         final allCategories = json.decode(response.body) as List;
 
+        // فیلتر کردن فقط دسته‌بندی‌های اصلی (parent = 0 یا null)
+        final mainCategoriesOnly = allCategories.where((category) {
+          return category['parent'] == 0 || category['parent'] == null;
+        }).toList();
+
         // فیلتر کردن دسته‌بندی‌های خالی (بدون محصول)
         List nonEmptyCategories = [];
-        for (var category in allCategories) {
+        for (var category in mainCategoriesOnly) {
           final categoryId = category['id'];
           final productsUrl =
               Uri.parse(ApiService.getCategoryCheckUrl(categoryId.toString()));
@@ -1443,8 +1475,6 @@ class _ProductsPageState extends State<ProductsPage> {
   }
 
   Future<void> fetchProducts() async {
-    if (isLoading) return;
-
     setState(() {
       isLoading = true;
     });
@@ -1462,7 +1492,11 @@ class _ProductsPageState extends State<ProductsPage> {
       if (response.statusCode == 200) {
         final newProducts = json.decode(response.body) as List;
         setState(() {
-          products.addAll(newProducts);
+          if (page == 1) {
+            products = newProducts;
+          } else {
+            products.addAll(newProducts);
+          }
           hasMore = newProducts.length == 10;
           isLoading = false;
           errorMsg = null;
@@ -2010,9 +2044,14 @@ class _ParentCategoryGridState extends State<ParentCategoryGrid> {
       if (response.statusCode == 200) {
         final allCategories = json.decode(response.body) as List;
 
+        // فیلتر کردن فقط دسته‌بندی‌های اصلی (parent = 0 یا null)
+        final mainCategoriesOnly = allCategories.where((category) {
+          return category['parent'] == 0 || category['parent'] == null;
+        }).toList();
+
         // فیلتر کردن دسته‌بندی‌های خالی (بدون محصول)
         List nonEmptyCategories = [];
-        for (var category in allCategories) {
+        for (var category in mainCategoriesOnly) {
           final categoryId = category['id'];
           final productsUrl =
               Uri.parse(ApiService.getCategoryCheckUrl(categoryId.toString()));

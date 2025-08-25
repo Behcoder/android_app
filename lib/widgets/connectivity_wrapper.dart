@@ -13,15 +13,15 @@ class ConnectivityWrapper extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder(
+    return StreamBuilder<ConnectivityResult>(
       stream: ConnectivityService.connectivityStream,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
+          return Center(child: CircularProgressIndicator());
         }
 
         if (snapshot.data == ConnectivityResult.none) {
-          return const NoInternetPage();
+          return NoInternetPage();
         }
 
         return child;
