@@ -9,6 +9,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'dart:math';
 import 'dart:async';
 import 'constants/app_texts.dart';
+import 'constants/app_config.dart';
 import 'pages/static_content_page.dart';
 import 'pages/contact_us_page.dart';
 import 'pages/no_internet_page.dart';
@@ -44,6 +45,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'سیفی مارکت',
+      debugShowCheckedModeBanner: false,
       theme: ThemeData(
         // This is the theme of your application.
         //
@@ -89,9 +91,16 @@ class MyApp extends StatelessWidget {
         GlobalCupertinoLocalizations.delegate,
       ],
       supportedLocales: const [
+        Locale('fa', 'IR'),
         Locale('fa', ''),
       ],
-      locale: const Locale('fa', ''),
+      locale: const Locale('fa', 'IR'),
+      builder: (context, child) {
+        return Directionality(
+          textDirection: TextDirection.rtl,
+          child: child!,
+        );
+      },
       home: const ConnectivityWrapper(),
     );
   }
@@ -216,7 +225,7 @@ class CustomHeader extends StatelessWidget {
           child: Row(
             children: [
               Image.asset(
-                'assets/img/logo.png',
+                'assets/icon/app_icon.png',
                 height: 40,
                 fit: BoxFit.contain,
               ),
@@ -270,16 +279,16 @@ class HomePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
+    return Scaffold(
       body: SafeArea(
         child: SingleChildScrollView(
           child: Column(
             children: [
-              CustomHeader(),
-              BannerSlider(),
+              const CustomHeader(),
+              const BannerSlider(),
               // CategoryMenu(), // Removed CategoryMenu
               // New section for Parent Categories
-              Padding(
+              const Padding(
                 padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 child: Align(
                   alignment: Alignment.centerRight,
@@ -292,14 +301,30 @@ class HomePage extends StatelessWidget {
                   ),
                 ),
               ),
-              ParentCategoryGrid(),
-              FeaturedProducts(),
-              NewProducts(),
+              const ParentCategoryGrid(),
+              const FeaturedProducts(),
+              const NewProducts(),
+              // Version display
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                margin: const EdgeInsets.only(top: 8),
+                child: const Center(
+                  child: Text(
+                    AppConfig.appVersion,
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: Color(0xFF9E9E9E),
+                      fontWeight: FontWeight.w300,
+                    ),
+                  ),
+                ),
+              ),
             ],
           ),
         ),
       ),
-      bottomNavigationBar: Footer(),
+      bottomNavigationBar: const Footer(),
     );
   }
 }
@@ -317,9 +342,9 @@ class Footer extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-      decoration: BoxDecoration(
-        color: Colors.blue.shade900,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+      decoration: const BoxDecoration(
+        color: Color(0xFF1565C0),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -364,7 +389,7 @@ class Footer extends StatelessWidget {
                           width: 40,
                           height: 4,
                           decoration: BoxDecoration(
-                            color: Colors.grey.shade300,
+                            color: const Color(0xFFE0E0E0),
                             borderRadius: BorderRadius.circular(2),
                           ),
                         ),
@@ -445,7 +470,7 @@ class Footer extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
         child: Row(
           children: [
-            Icon(icon, color: Colors.blue.shade900, size: 24),
+            Icon(icon, color: const Color(0xFF1565C0), size: 24),
             const SizedBox(width: 16),
             Text(
               label,
@@ -637,11 +662,21 @@ class _FeaturedProductsState extends State<FeaturedProducts> {
     try {
       final response = await http.get(url);
       if (response.statusCode == 200) {
-        setState(() {
-          products = json.decode(response.body);
-          isLoading = false;
-          errorMsg = null;
-        });
+        final data = json.decode(response.body);
+        if (data['success'] == true && data['products'] != null) {
+          final allProducts = data['products'] as List;
+          final filteredProducts = AppConfig.filterProductsByPrice(allProducts);
+          setState(() {
+            products = filteredProducts;
+            isLoading = false;
+            errorMsg = null;
+          });
+        } else {
+          setState(() {
+            isLoading = false;
+            errorMsg = 'خطا در دریافت محصولات: ' + (data['error'] ?? 'Unknown error');
+          });
+        }
       } else {
         setState(() {
           isLoading = false;
@@ -894,13 +929,22 @@ class _NewProductsState extends State<NewProducts> {
     try {
       final response = await http.get(url);
       if (response.statusCode == 200) {
-        final allProducts = json.decode(response.body);
-        setState(() {
-          products = allProducts;
-          randomProducts = getRandomItems(allProducts, 7);
-          isLoading = false;
-          errorMsg = null;
-        });
+        final data = json.decode(response.body);
+        if (data['success'] == true && data['products'] != null) {
+          final allProducts = data['products'] as List;
+          final filteredProducts = AppConfig.filterProductsByPrice(allProducts);
+          setState(() {
+            products = filteredProducts;
+            randomProducts = getRandomItems(filteredProducts, 7);
+            isLoading = false;
+            errorMsg = null;
+          });
+        } else {
+          setState(() {
+            isLoading = false;
+            errorMsg = 'خطا در دریافت محصولات: ' + (data['error'] ?? 'Unknown error');
+          });
+        }
       } else {
         setState(() {
           isLoading = false;
@@ -1122,43 +1166,82 @@ class _CategoriesPageState extends State<CategoriesPage> {
     fetchMainCategories();
   }
 
+  // تابع فیلتر کردن دسته‌بندی‌های مخفی
+  List _filterHiddenCategories(List categories) {
+    return categories.where((category) {
+      final categoryName = category['name']?.toString().toLowerCase() ?? '';
+      final categorySlug = category['slug']?.toString().toLowerCase() ?? '';
+
+      // دسته‌بندی‌هایی که نباید نمایش داده شوند
+      final hiddenCategories = [
+        'فروش ویژه',
+        'محصولات ویژه اپ',
+        'featured-app-products',
+        'special-sale',
+      ];
+
+      return !hiddenCategories.any((hidden) =>
+          categoryName.contains(hidden.toLowerCase()) ||
+          categorySlug.contains(hidden.toLowerCase()));
+    }).toList();
+  }
+
   Future<void> fetchMainCategories() async {
     final url = Uri.parse(ApiService.getCategoriesUrl());
     try {
       final response = await http.get(url);
       if (response.statusCode == 200) {
-        final allCategories = json.decode(response.body) as List;
+        final data = json.decode(response.body);
+        if (data['success'] == true && data['categories'] != null) {
+          final allCategories = data['categories'] as List;
 
-        // فیلتر کردن دسته‌بندی‌های خالی (بدون محصول)
-        List nonEmptyCategories = [];
-        for (var category in allCategories) {
-          final categoryId = category['id'];
-          final productsUrl =
-              Uri.parse(ApiService.getCategoryCheckUrl(categoryId.toString()));
+          // فیلتر کردن فقط دسته‌بندی‌های اصلی (parent = 0 یا null)
+          final mainCategoriesOnly = allCategories.where((category) {
+            return category['parent'] == 0 || category['parent'] == null;
+          }).toList();
 
-          try {
-            final productsResponse = await http.get(productsUrl);
-            if (productsResponse.statusCode == 200) {
-              final products = json.decode(productsResponse.body) as List;
-              if (products.isNotEmpty) {
-                nonEmptyCategories.add(category);
+          // فیلتر کردن دسته‌بندی‌های مخفی
+          final visibleCategories = _filterHiddenCategories(mainCategoriesOnly);
+
+          // فیلتر کردن دسته‌بندی‌های خالی (بدون محصول)
+          List nonEmptyCategories = [];
+          for (var category in mainCategoriesOnly) {
+            final categoryId = category['id'];
+            final productsUrl =
+                Uri.parse(ApiService.getCategoryCheckUrl(categoryId.toString()));
+
+            try {
+              final productsResponse = await http.get(productsUrl);
+              if (productsResponse.statusCode == 200) {
+                final productsData = json.decode(productsResponse.body);
+                if (productsData['success'] == true && productsData['products'] != null) {
+                  final products = productsData['products'] as List;
+                  if (products.isNotEmpty) {
+                    nonEmptyCategories.add(category);
+                  }
+                }
               }
+            } catch (e) {
+              // در صورت خطا، دسته‌بندی را نادیده می‌گیریم
+              continue;
             }
-          } catch (e) {
-            // در صورت خطا، دسته‌بندی را نادیده می‌گیریم
-            continue;
           }
-        }
 
-        setState(() {
-          mainCategories = nonEmptyCategories;
-          isLoading = false;
-          errorMsg = null;
-          if (mainCategories.isNotEmpty) {
-            selectedCategoryId = mainCategories[0]['id'];
-            fetchSubCategories(selectedCategoryId!);
-          }
-        });
+          setState(() {
+            mainCategories = nonEmptyCategories;
+            isLoading = false;
+            errorMsg = null;
+            if (mainCategories.isNotEmpty) {
+              selectedCategoryId = mainCategories[0]['id'];
+              fetchSubCategories(selectedCategoryId!);
+            }
+          });
+        } else {
+          setState(() {
+            isLoading = false;
+            errorMsg = 'خطا در دریافت دسته‌بندی‌ها: ' + (data['error'] ?? 'Unknown error');
+          });
+        }
       } else {
         setState(() {
           isLoading = false;
@@ -1178,32 +1261,38 @@ class _CategoriesPageState extends State<CategoriesPage> {
     try {
       final response = await http.get(url);
       if (response.statusCode == 200) {
-        final allSubCategories = json.decode(response.body) as List;
+        final data = json.decode(response.body);
+        if (data['success'] == true && data['categories'] != null) {
+          final allSubCategories = data['categories'] as List;
 
-        // فیلتر کردن زیر دسته‌بندی‌های خالی (بدون محصول)
-        List nonEmptySubCategories = [];
-        for (var category in allSubCategories) {
-          final categoryId = category['id'];
-          final productsUrl =
-              Uri.parse(ApiService.getCategoryCheckUrl(categoryId.toString()));
+          // فیلتر کردن زیر دسته‌بندی‌های خالی (بدون محصول)
+          List nonEmptySubCategories = [];
+          for (var category in allSubCategories) {
+            final categoryId = category['id'];
+            final productsUrl =
+                Uri.parse(ApiService.getCategoryCheckUrl(categoryId.toString()));
 
-          try {
-            final productsResponse = await http.get(productsUrl);
-            if (productsResponse.statusCode == 200) {
-              final products = json.decode(productsResponse.body) as List;
-              if (products.isNotEmpty) {
-                nonEmptySubCategories.add(category);
+            try {
+              final productsResponse = await http.get(productsUrl);
+              if (productsResponse.statusCode == 200) {
+                final productsData = json.decode(productsResponse.body);
+                if (productsData['success'] == true && productsData['products'] != null) {
+                  final products = productsData['products'] as List;
+                  if (products.isNotEmpty) {
+                    nonEmptySubCategories.add(category);
+                  }
+                }
               }
+            } catch (e) {
+              // در صورت خطا، دسته‌بندی را نادیده می‌گیریم
+              continue;
             }
-          } catch (e) {
-            // در صورت خطا، دسته‌بندی را نادیده می‌گیریم
-            continue;
           }
-        }
 
-        setState(() {
-          subCategories = nonEmptySubCategories;
-        });
+          setState(() {
+            subCategories = nonEmptySubCategories;
+          });
+        }
       }
     } catch (e) {
       print('Error fetching subcategories: $e');
@@ -1443,8 +1532,6 @@ class _ProductsPageState extends State<ProductsPage> {
   }
 
   Future<void> fetchProducts() async {
-    if (isLoading) return;
-
     setState(() {
       isLoading = true;
     });
@@ -1460,13 +1547,26 @@ class _ProductsPageState extends State<ProductsPage> {
     try {
       final response = await http.get(Uri.parse(url));
       if (response.statusCode == 200) {
-        final newProducts = json.decode(response.body) as List;
-        setState(() {
-          products.addAll(newProducts);
-          hasMore = newProducts.length == 10;
-          isLoading = false;
-          errorMsg = null;
-        });
+        final data = json.decode(response.body);
+        if (data['success'] == true && data['products'] != null) {
+          final allProducts = data['products'] as List;
+          final filteredProducts = AppConfig.filterProductsByPrice(allProducts);
+          setState(() {
+            if (page == 1) {
+              products = filteredProducts;
+            } else {
+              products.addAll(filteredProducts);
+            }
+            hasMore = filteredProducts.length == 10;
+            isLoading = false;
+            errorMsg = null;
+          });
+        } else {
+          setState(() {
+            isLoading = false;
+            errorMsg = 'خطا در دریافت محصولات: ' + (data['error'] ?? 'Unknown error');
+          });
+        }
       } else {
         setState(() {
           isLoading = false;
@@ -1509,69 +1609,82 @@ class _ProductsPageState extends State<ProductsPage> {
                       itemCount: products.length,
                       itemBuilder: (context, index) {
                         final product = products[index];
-                        return Container(
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(16),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.grey.withOpacity(0.1),
-                                blurRadius: 8,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              ClipRRect(
-                                borderRadius: const BorderRadius.vertical(
-                                    top: Radius.circular(16)),
-                                child: product['images'] != null &&
-                                        product['images'].isNotEmpty
-                                    ? Image.network(
-                                        product['images'][0]['src'],
-                                        height: 120,
-                                        width: double.infinity,
-                                        fit: BoxFit.cover,
-                                      )
-                                    : Container(
-                                        height: 120,
-                                        color: Colors.grey.shade200,
-                                        child: Center(
-                                          child: Icon(Icons.image,
-                                              size: 48,
-                                              color: Colors.grey.shade400),
-                                        ),
-                                      ),
-                              ),
-                              Padding(
-                                padding: const EdgeInsets.all(12),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      product['name'] ?? '',
-                                      style: const TextStyle(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                    const SizedBox(height: 8),
-                                    Text(
-                                      '${product['price'] ?? '0'} تومان',
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        color: Colors.blue.shade700,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ],
+                        return GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => ProductDetailPage(
+                                  product: product,
                                 ),
                               ),
-                            ],
+                            );
+                          },
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(16),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.grey.withOpacity(0.1),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                ClipRRect(
+                                  borderRadius: const BorderRadius.vertical(
+                                      top: Radius.circular(16)),
+                                  child: product['images'] != null &&
+                                          product['images'].isNotEmpty
+                                      ? Image.network(
+                                          product['images'][0]['src'],
+                                          height: 120,
+                                          width: double.infinity,
+                                          fit: BoxFit.cover,
+                                        )
+                                      : Container(
+                                          height: 120,
+                                          color: Colors.grey.shade200,
+                                          child: Center(
+                                            child: Icon(Icons.image,
+                                                size: 48,
+                                                color: Colors.grey.shade400),
+                                          ),
+                                        ),
+                                ),
+                                Padding(
+                                  padding: const EdgeInsets.all(12),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        product['name'] ?? '',
+                                        style: const TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        '${product['price'] ?? '0'} تومان',
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          color: Colors.blue.shade700,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         );
                       },
@@ -2003,39 +2116,78 @@ class _ParentCategoryGridState extends State<ParentCategoryGrid> {
     fetchParentCategories();
   }
 
+  // تابع فیلتر کردن دسته‌بندی‌های مخفی
+  List _filterHiddenCategories(List categories) {
+    return categories.where((category) {
+      final categoryName = category['name']?.toString().toLowerCase() ?? '';
+      final categorySlug = category['slug']?.toString().toLowerCase() ?? '';
+
+      // دسته‌بندی‌هایی که نباید نمایش داده شوند
+      final hiddenCategories = [
+        'فروش ویژه',
+        'محصولات ویژه اپ',
+        'featured-app-products',
+        'special-sale',
+      ];
+
+      return !hiddenCategories.any((hidden) =>
+          categoryName.contains(hidden.toLowerCase()) ||
+          categorySlug.contains(hidden.toLowerCase()));
+    }).toList();
+  }
+
   Future<void> fetchParentCategories() async {
     final url = Uri.parse(ApiService.getCategoriesUrl());
     try {
       final response = await http.get(url);
       if (response.statusCode == 200) {
-        final allCategories = json.decode(response.body) as List;
+        final data = json.decode(response.body);
+        if (data['success'] == true && data['categories'] != null) {
+          final allCategories = data['categories'] as List;
 
-        // فیلتر کردن دسته‌بندی‌های خالی (بدون محصول)
-        List nonEmptyCategories = [];
-        for (var category in allCategories) {
-          final categoryId = category['id'];
-          final productsUrl =
-              Uri.parse(ApiService.getCategoryCheckUrl(categoryId.toString()));
+          // فیلتر کردن فقط دسته‌بندی‌های اصلی (parent = 0 یا null)
+          final mainCategoriesOnly = allCategories.where((category) {
+            return category['parent'] == 0 || category['parent'] == null;
+          }).toList();
 
-          try {
-            final productsResponse = await http.get(productsUrl);
-            if (productsResponse.statusCode == 200) {
-              final products = json.decode(productsResponse.body) as List;
-              if (products.isNotEmpty) {
-                nonEmptyCategories.add(category);
+          // فیلتر کردن دسته‌بندی‌های مخفی
+          final visibleCategories = _filterHiddenCategories(mainCategoriesOnly);
+
+          // فیلتر کردن دسته‌بندی‌های خالی (بدون محصول)
+          List nonEmptyCategories = [];
+          for (var category in mainCategoriesOnly) {
+            final categoryId = category['id'];
+            final productsUrl =
+                Uri.parse(ApiService.getCategoryCheckUrl(categoryId.toString()));
+
+            try {
+              final productsResponse = await http.get(productsUrl);
+              if (productsResponse.statusCode == 200) {
+                final productsData = json.decode(productsResponse.body);
+                if (productsData['success'] == true && productsData['products'] != null) {
+                  final products = productsData['products'] as List;
+                  if (products.isNotEmpty) {
+                    nonEmptyCategories.add(category);
+                  }
+                }
               }
+            } catch (e) {
+              // در صورت خطا، دسته‌بندی را نادیده می‌گیریم
+              continue;
             }
-          } catch (e) {
-            // در صورت خطا، دسته‌بندی را نادیده می‌گیریم
-            continue;
           }
-        }
 
-        setState(() {
-          categories = nonEmptyCategories;
-          isLoading = false;
-          errorMsg = null;
-        });
+          setState(() {
+            categories = nonEmptyCategories;
+            isLoading = false;
+            errorMsg = null;
+          });
+        } else {
+          setState(() {
+            isLoading = false;
+            errorMsg = 'خطا در دریافت دسته‌بندی‌ها: ' + (data['error'] ?? 'Unknown error');
+          });
+        }
       } else {
         setState(() {
           isLoading = false;

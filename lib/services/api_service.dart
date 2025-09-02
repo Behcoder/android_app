@@ -6,51 +6,47 @@ class ApiService {
       dotenv.env['WOOCOMMERCE_CONSUMER_SECRET'] ?? '';
   static String get baseUrl => dotenv.env['WOOCOMMERCE_BASE_URL'] ?? '';
 
-  // ساخت URL برای دسته‌بندی‌ها
+  // ساخت URL برای دسته‌بندی‌ها - استفاده از API محلی
   static String getCategoriesUrl() {
-    return '$baseUrl/products/categories?consumer_key=$consumerKey&consumer_secret=$consumerSecret&per_page=100';
+    return 'https://app.seify.ir/api/products-manager.php?action=categories';
   }
 
-  // ساخت URL برای محصولات
+  // ساخت URL برای محصولات - استفاده از API محلی
   static String getProductsUrl({String? categoryId, int page = 1}) {
-    String url =
-        '$baseUrl/products?consumer_key=$consumerKey&consumer_secret=$consumerSecret&per_page=100';
+    String url = 'https://app.seify.ir/api/products-manager.php?action=list&page=$page&per_page=100';
     if (categoryId != null) {
       url += '&category=$categoryId';
-    }
-    if (page > 1) {
-      url += '&page=$page';
     }
     return url;
   }
 
-  // ساخت URL برای محصولات ویژه
+  // ساخت URL برای محصولات ویژه - استفاده از API محلی
   static String getFeaturedProductsUrl(String categoryId) {
-    return '$baseUrl/products?consumer_key=$consumerKey&consumer_secret=$consumerSecret&per_page=100&category=$categoryId';
+    return 'https://app.seify.ir/api/products-manager.php?action=list&category=$categoryId&per_page=100';
   }
 
-  // ساخت URL برای محصولات جدید
+  // ساخت URL برای محصولات جدید - استفاده از API محلی
   static String getNewProductsUrl() {
-    return '$baseUrl/products?consumer_key=$consumerKey&consumer_secret=$consumerSecret&per_page=100&orderby=date&order=desc';
+    return 'https://app.seify.ir/api/products-manager.php?action=list&per_page=100';
   }
 
-  // ساخت URL برای زیردسته‌ها
+  // ساخت URL برای زیردسته‌ها - استفاده از API محلی
   static String getSubCategoriesUrl(int parentId) {
-    return '$baseUrl/products/categories?consumer_key=$consumerKey&consumer_secret=$consumerSecret&per_page=100&parent=$parentId';
+    return 'https://app.seify.ir/api/products-manager.php?action=categories';
   }
 
-  // ساخت URL برای نظرات محصول
+  // ساخت URL برای نظرات محصول - استفاده از API محلی
   static String getProductReviewsUrl(int productId) {
-    return '$baseUrl/products/reviews?consumer_key=$consumerKey&consumer_secret=$consumerSecret&product=$productId';
+    return 'https://app.seify.ir/api/products-manager.php?action=reviews&product_id=$productId';
   }
 
-  // ساخت URL برای ارسال نظر
+  // ساخت URL برای ارسال نظر - استفاده از API محلی
   static String getSubmitReviewUrl() {
-    return '$baseUrl/products/reviews?consumer_key=$consumerKey&consumer_secret=$consumerSecret';
+    return 'https://app.seify.ir/api/products-manager.php?action=submit_review';
   }
 
-  // ساخت URL برای بررسی دسته‌بندی‌های خالی
+  // ساخت URL برای بررسی دسته‌بندی‌های خالی - استفاده از API محلی
   static String getCategoryCheckUrl(String categoryId) {
-    return '$baseUrl/products?consumer_key=$consumerKey&consumer_secret=$consumerSecret&category=$categoryId&per_page=1';
+    return 'https://app.seify.ir/api/products-manager.php?action=list&category=$categoryId&per_page=1';
   }
 }

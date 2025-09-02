@@ -1,38 +1,78 @@
 <!DOCTYPE html>
-<html>
+<html lang="fa" dir="rtl">
 <head>
-  <!--
-    If you are serving your web app in a path other than the root, change the
-    href value below to reflect the base path you are serving from.
-
-    The path provided below has to start and end with a slash "/" in order for
-    it to work correctly.
-
-    For more details:
-    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
-
-    This is a placeholder for base href that will be replaced by the value of
-    the `--base-href` argument provided to `flutter build`.
-  -->
+  <!-- Base href managed by Flutter tool -->
   <base href="$FLUTTER_BASE_HREF">
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="A new Flutter project.">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <meta name="description" content="سیفی مارکت - فروش آنلاین لوله فولادی و آهن‌آلات">
 
-  <!-- iOS meta tags & icons -->
+  <!-- iOS PWA meta tags & icons -->
   <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="سیفی مارکت">
+  <meta name="format-detection" content="telephone=no, address=no, email=no">
+  
+  <!-- iOS Icons - Multiple sizes for better compatibility -->
+  <link rel="apple-touch-icon" sizes="180x180" href="icons/Icon-192.png">
+  <link rel="apple-touch-icon" sizes="152x152" href="icons/Icon-192.png">
+  <link rel="apple-touch-icon" sizes="144x144" href="icons/Icon-192.png">
+  <link rel="apple-touch-icon" sizes="120x120" href="icons/Icon-192.png">
+  <link rel="apple-touch-icon" sizes="114x114" href="icons/Icon-192.png">
+  <link rel="apple-touch-icon" sizes="76x76" href="icons/Icon-192.png">
+  <link rel="apple-touch-icon" sizes="72x72" href="icons/Icon-192.png">
+  <link rel="apple-touch-icon" sizes="60x60" href="icons/Icon-192.png">
+  <link rel="apple-touch-icon" sizes="57x57" href="icons/Icon-192.png">
+  
+  <!-- iOS Splash Screen -->
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="seify_app">
-  <link rel="apple-touch-icon" href="icons/Icon-192.png">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png"/>
 
-  <title>seify_app</title>
+  <title>سیفی مارکت</title>
   <link rel="manifest" href="manifest.json">
+  
+  <!-- iOS PWA specific styles -->
+  <style>
+    /* iOS PWA specific styles */
+    body {
+      -webkit-touch-callout: none;
+      -webkit-user-select: none;
+      -khtml-user-select: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    
+    /* Prevent zoom on input focus for iOS */
+    input, textarea, select {
+      font-size: 16px;
+    }
+  </style>
 </head>
 <body>
   <script src="flutter_bootstrap.js" async></script>
+  
+  <!-- Service Worker Registration -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js')
+          .then((registration) => {
+            console.log('SW registered: ', registration);
+          })
+          .catch((registrationError) => {
+            console.log('SW registration failed: ', registrationError);
+          });
+      });
+    }
+  </script>
 </body>
 </html>
