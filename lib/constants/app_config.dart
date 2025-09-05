@@ -26,7 +26,7 @@ class AppConfig {
   }
 
   // ورژن فعلی اپلیکیشن
-  static const String appVersion = 'v1.6.3.1';
+  static const String appVersion = 'v1.6.5.1';
 
   // نام اپلیکیشن
   static const String appName = 'سیفی مارکت';

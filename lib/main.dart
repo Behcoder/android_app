@@ -18,6 +18,147 @@ import 'pages/gallery_page.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'services/connectivity_service.dart';
 import 'services/api_service.dart';
+import 'package:flutter/foundation.dart';
+
+// Helper: create product image placeholder
+Widget buildProductImagePlaceholder({double? height, double? width}) {
+  final isSmall = (height ?? 120) < 60 || (width ?? double.infinity) < 60;
+
+  return Container(
+    height: height ?? 120,
+    width: width ?? double.infinity,
+    decoration: BoxDecoration(
+      gradient: LinearGradient(
+        colors: [
+          Colors.blue[100]!,
+          Colors.blue[50]!,
+          Colors.blue[100]!,
+        ],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+      ),
+    ),
+    child: isSmall
+        ? const Center(
+            child: Icon(
+              Icons.image_outlined,
+              size: 20,
+              color: Colors.blue,
+            ),
+          )
+        : const Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.image_outlined,
+                size: 32,
+                color: Colors.blue,
+              ),
+              SizedBox(height: 8),
+              Text(
+                'تصویر محصول',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.blue,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              SizedBox(height: 4),
+              Text(
+                'v1.6.4.1',
+                style: TextStyle(
+                  fontSize: 8,
+                  color: Colors.grey,
+                ),
+              ),
+            ],
+          ),
+  );
+}
+
+// Helper: create error placeholder for images
+Widget buildImageErrorPlaceholder({double? height, double? width}) {
+  return Container(
+    height: height ?? 120,
+    width: width ?? double.infinity,
+    decoration: BoxDecoration(
+      color: Colors.grey[100],
+      border: Border.all(color: Colors.grey[300]!, width: 1),
+    ),
+    child: const Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(
+          Icons.image_not_supported_outlined,
+          size: 32,
+          color: Colors.grey,
+        ),
+        SizedBox(height: 4),
+        Text(
+          'تصویر در دسترس نیست',
+          style: TextStyle(
+            fontSize: 10,
+            color: Colors.grey,
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+// Helper: normalize image URLs to absolute https references under app.seify.ir
+String getFullImageUrl(String? imageUrl) {
+  if (imageUrl == null || imageUrl.isEmpty) return '';
+
+  if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+    // On web, route seify.ir images through app.seify.ir proxy to avoid CORS
+    if (kIsWeb && imageUrl.contains('seify.ir')) {
+      final encoded = Uri.encodeComponent(imageUrl);
+      return 'https://app.seify.ir/api/img-proxy.php?u=$encoded';
+    }
+    return imageUrl;
+  }
+
+  // On web, unwrap proxy URLs to direct target to avoid SW/CORS issues
+  // Example: /api/img-proxy.php?u=https%3A%2F%2Fseify.ir%2Fwp-content%2F...
+  if (identical(0, 0.0)) {
+    // quick constant-false in native; true in web via dart2js trick is unreliable.
+  }
+
+  if (imageUrl.startsWith('/api/img-proxy.php')) {
+    final uri = Uri.parse(imageUrl);
+    final u = uri.queryParameters['u'];
+    if (u != null && u.isNotEmpty) {
+      try {
+        final decoded = Uri.decodeComponent(u);
+        if (decoded.startsWith('http')) return decoded;
+      } catch (_) {}
+    }
+    return 'https://app.seify.ir$imageUrl';
+  }
+
+  if (imageUrl.startsWith('api/img-proxy.php')) {
+    final uri = Uri.parse('https://app.seify.ir/$imageUrl');
+    final u = uri.queryParameters['u'];
+    if (u != null && u.isNotEmpty) {
+      try {
+        final decoded = Uri.decodeComponent(u);
+        if (decoded.startsWith('http')) return decoded;
+      } catch (_) {}
+    }
+    return 'https://app.seify.ir/$imageUrl';
+  }
+
+  if (imageUrl.startsWith('/')) {
+    return 'https://app.seify.ir$imageUrl';
+  }
+
+  if (imageUrl.startsWith('api/')) {
+    return 'https://app.seify.ir/$imageUrl';
+  }
+
+  return imageUrl;
+}
 
 // ==========================================
 // [main.dart-main]
@@ -44,7 +185,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'سیفی مارکت',
+      title: '🔥 تست تغییر 🔥',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         // This is the theme of your application.
@@ -64,8 +205,8 @@ class MyApp extends StatelessWidget {
         // tested with just a hot reload.
         fontFamily: GoogleFonts.vazirmatn().fontFamily,
         colorScheme: ColorScheme.fromSeed(
-            seedColor: Colors.green, brightness: Brightness.light),
-        scaffoldBackgroundColor: const Color(0xFFF8F9FA),
+            seedColor: Colors.red, brightness: Brightness.light),
+        scaffoldBackgroundColor: Colors.red,
         appBarTheme: const AppBarTheme(
           backgroundColor: Colors.white,
           foregroundColor: Colors.black,
@@ -212,7 +353,7 @@ class CustomHeader extends StatelessWidget {
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 4,
             offset: const Offset(0, 2),
           ),
@@ -249,19 +390,6 @@ class CustomHeader extends StatelessWidget {
               ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCategoryItem(String label, bool isSelected) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-          color: isSelected ? Colors.blue : Colors.grey,
         ),
       ),
     );
@@ -621,7 +749,10 @@ class _FeaturedProductsState extends State<FeaturedProducts> {
     try {
       final response = await http.get(url);
       if (response.statusCode == 200) {
-        final categories = json.decode(response.body) as List;
+        final responseData = json.decode(response.body);
+        final categories = responseData is List
+            ? responseData
+            : (responseData['categories'] ?? []);
         final featuredCategory = categories.firstWhere(
           (cat) =>
               cat['name'] == 'محصولات ویژه اپ' ||
@@ -664,7 +795,7 @@ class _FeaturedProductsState extends State<FeaturedProducts> {
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         if (data['success'] == true && data['products'] != null) {
-          final allProducts = data['products'] as List;
+          final allProducts = data['products'] is List ? data['products'] : [];
           final filteredProducts = AppConfig.filterProductsByPrice(allProducts);
           setState(() {
             products = filteredProducts;
@@ -674,7 +805,8 @@ class _FeaturedProductsState extends State<FeaturedProducts> {
         } else {
           setState(() {
             isLoading = false;
-            errorMsg = 'خطا در دریافت محصولات: ' + (data['error'] ?? 'Unknown error');
+            errorMsg =
+                'خطا در دریافت محصولات: ${data['error'] ?? 'Unknown error'}';
           });
         }
       } else {
@@ -790,7 +922,7 @@ class _FeaturedProductsState extends State<FeaturedProducts> {
                       borderRadius: BorderRadius.circular(16),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.grey.withOpacity(0.1),
+                          color: Colors.grey.withValues(alpha: 0.1),
                           blurRadius: 8,
                           offset: const Offset(0, 2),
                         ),
@@ -803,12 +935,7 @@ class _FeaturedProductsState extends State<FeaturedProducts> {
                           ClipRRect(
                             borderRadius: const BorderRadius.vertical(
                                 top: Radius.circular(16)),
-                            child: Image.network(
-                              imageUrl,
-                              height: 120,
-                              width: double.infinity,
-                              fit: BoxFit.cover,
-                            ),
+                            child: buildProductImagePlaceholder(height: 120),
                           )
                         else
                           Container(
@@ -931,7 +1058,7 @@ class _NewProductsState extends State<NewProducts> {
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         if (data['success'] == true && data['products'] != null) {
-          final allProducts = data['products'] as List;
+          final allProducts = data['products'] is List ? data['products'] : [];
           final filteredProducts = AppConfig.filterProductsByPrice(allProducts);
           setState(() {
             products = filteredProducts;
@@ -942,7 +1069,8 @@ class _NewProductsState extends State<NewProducts> {
         } else {
           setState(() {
             isLoading = false;
-            errorMsg = 'خطا در دریافت محصولات: ' + (data['error'] ?? 'Unknown error');
+            errorMsg =
+                'خطا در دریافت محصولات: ${data['error'] ?? 'Unknown error'}';
           });
         }
       } else {
@@ -1052,7 +1180,7 @@ class _NewProductsState extends State<NewProducts> {
                     borderRadius: BorderRadius.circular(16),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.grey.withOpacity(0.1),
+                        color: Colors.grey.withValues(alpha: 0.1),
                         blurRadius: 8,
                         offset: const Offset(0, 2),
                       ),
@@ -1065,12 +1193,7 @@ class _NewProductsState extends State<NewProducts> {
                         ClipRRect(
                           borderRadius: const BorderRadius.vertical(
                               top: Radius.circular(16)),
-                          child: Image.network(
-                            imageUrl,
-                            height: 120,
-                            width: double.infinity,
-                            fit: BoxFit.cover,
-                          ),
+                          child: buildProductImagePlaceholder(height: 120),
                         )
                       else
                         Container(
@@ -1166,6 +1289,13 @@ class _CategoriesPageState extends State<CategoriesPage> {
     fetchMainCategories();
   }
 
+  // تابع امن برای setState
+  void _safeSetState(VoidCallback fn) {
+    if (mounted) {
+      setState(fn);
+    }
+  }
+
   // تابع فیلتر کردن دسته‌بندی‌های مخفی
   List _filterHiddenCategories(List categories) {
     return categories.where((category) {
@@ -1193,7 +1323,8 @@ class _CategoriesPageState extends State<CategoriesPage> {
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         if (data['success'] == true && data['categories'] != null) {
-          final allCategories = data['categories'] as List;
+          final allCategories =
+              data['categories'] is List ? data['categories'] : [];
 
           // فیلتر کردن فقط دسته‌بندی‌های اصلی (parent = 0 یا null)
           final mainCategoriesOnly = allCategories.where((category) {
@@ -1205,17 +1336,20 @@ class _CategoriesPageState extends State<CategoriesPage> {
 
           // فیلتر کردن دسته‌بندی‌های خالی (بدون محصول)
           List nonEmptyCategories = [];
-          for (var category in mainCategoriesOnly) {
+          for (var category in visibleCategories) {
             final categoryId = category['id'];
-            final productsUrl =
-                Uri.parse(ApiService.getCategoryCheckUrl(categoryId.toString()));
+            final productsUrl = Uri.parse(
+                ApiService.getCategoryCheckUrl(categoryId.toString()));
 
             try {
               final productsResponse = await http.get(productsUrl);
               if (productsResponse.statusCode == 200) {
                 final productsData = json.decode(productsResponse.body);
-                if (productsData['success'] == true && productsData['products'] != null) {
-                  final products = productsData['products'] as List;
+                if (productsData['success'] == true &&
+                    productsData['products'] != null) {
+                  final products = productsData['products'] is List
+                      ? productsData['products']
+                      : [];
                   if (products.isNotEmpty) {
                     nonEmptyCategories.add(category);
                   }
@@ -1227,7 +1361,7 @@ class _CategoriesPageState extends State<CategoriesPage> {
             }
           }
 
-          setState(() {
+          _safeSetState(() {
             mainCategories = nonEmptyCategories;
             isLoading = false;
             errorMsg = null;
@@ -1237,19 +1371,20 @@ class _CategoriesPageState extends State<CategoriesPage> {
             }
           });
         } else {
-          setState(() {
+          _safeSetState(() {
             isLoading = false;
-            errorMsg = 'خطا در دریافت دسته‌بندی‌ها: ' + (data['error'] ?? 'Unknown error');
+            errorMsg =
+                'خطا در دریافت دسته‌بندی‌ها: ${data['error'] ?? 'Unknown error'}';
           });
         }
       } else {
-        setState(() {
+        _safeSetState(() {
           isLoading = false;
           errorMsg = 'خطا در دریافت اطلاعات: ${response.statusCode}';
         });
       }
     } catch (e) {
-      setState(() {
+      _safeSetState(() {
         isLoading = false;
         errorMsg = 'خطا در ارتباط با سرور: $e';
       });
@@ -1263,21 +1398,25 @@ class _CategoriesPageState extends State<CategoriesPage> {
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         if (data['success'] == true && data['categories'] != null) {
-          final allSubCategories = data['categories'] as List;
+          final allSubCategories =
+              data['categories'] is List ? data['categories'] : [];
 
           // فیلتر کردن زیر دسته‌بندی‌های خالی (بدون محصول)
           List nonEmptySubCategories = [];
           for (var category in allSubCategories) {
             final categoryId = category['id'];
-            final productsUrl =
-                Uri.parse(ApiService.getCategoryCheckUrl(categoryId.toString()));
+            final productsUrl = Uri.parse(
+                ApiService.getCategoryCheckUrl(categoryId.toString()));
 
             try {
               final productsResponse = await http.get(productsUrl);
               if (productsResponse.statusCode == 200) {
                 final productsData = json.decode(productsResponse.body);
-                if (productsData['success'] == true && productsData['products'] != null) {
-                  final products = productsData['products'] as List;
+                if (productsData['success'] == true &&
+                    productsData['products'] != null) {
+                  final products = productsData['products'] is List
+                      ? productsData['products']
+                      : [];
                   if (products.isNotEmpty) {
                     nonEmptySubCategories.add(category);
                   }
@@ -1289,13 +1428,13 @@ class _CategoriesPageState extends State<CategoriesPage> {
             }
           }
 
-          setState(() {
+          _safeSetState(() {
             subCategories = nonEmptySubCategories;
           });
         }
       }
     } catch (e) {
-      print('Error fetching subcategories: $e');
+      debugPrint('Error fetching subcategories: $e');
     }
   }
 
@@ -1303,8 +1442,8 @@ class _CategoriesPageState extends State<CategoriesPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('دسته‌بندی محصولات'),
-        backgroundColor: Colors.blue,
+        title: const Text('🔥 تست تغییر 🔥'),
+        backgroundColor: Colors.purple,
         foregroundColor: Colors.white,
       ),
       body: isLoading
@@ -1340,11 +1479,17 @@ class _CategoriesPageState extends State<CategoriesPage> {
                                     horizontal: 12, vertical: 4),
                                 leading: cat['image'] != null &&
                                         cat['image']['src'] != null
-                                    ? Image.network(
-                                        cat['image']['src'],
+                                    ? SizedBox(
                                         width: 32,
                                         height: 32,
-                                        fit: BoxFit.cover,
+                                        child: ClipRRect(
+                                          borderRadius:
+                                              BorderRadius.circular(4),
+                                          child: buildProductImagePlaceholder(
+                                            height: 32,
+                                            width: 32,
+                                          ),
+                                        ),
                                       )
                                     : Icon(
                                         Icons.category,
@@ -1411,8 +1556,8 @@ class _CategoriesPageState extends State<CategoriesPage> {
                                               BorderRadius.circular(12),
                                           boxShadow: [
                                             BoxShadow(
-                                              color:
-                                                  Colors.grey.withOpacity(0.1),
+                                              color: Colors.grey
+                                                  .withValues(alpha: 0.1),
                                               blurRadius: 8,
                                               offset: const Offset(0, 2),
                                             ),
@@ -1429,11 +1574,8 @@ class _CategoriesPageState extends State<CategoriesPage> {
                                               child: cat['image'] != null &&
                                                       cat['image']['src'] !=
                                                           null
-                                                  ? Image.network(
-                                                      cat['image']['src'],
+                                                  ? buildProductImagePlaceholder(
                                                       height: 100,
-                                                      width: double.infinity,
-                                                      fit: BoxFit.cover,
                                                     )
                                                   : Container(
                                                       height: 100,
@@ -1549,7 +1691,7 @@ class _ProductsPageState extends State<ProductsPage> {
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         if (data['success'] == true && data['products'] != null) {
-          final allProducts = data['products'] as List;
+          final allProducts = data['products'] is List ? data['products'] : [];
           final filteredProducts = AppConfig.filterProductsByPrice(allProducts);
           setState(() {
             if (page == 1) {
@@ -1564,7 +1706,8 @@ class _ProductsPageState extends State<ProductsPage> {
         } else {
           setState(() {
             isLoading = false;
-            errorMsg = 'خطا در دریافت محصولات: ' + (data['error'] ?? 'Unknown error');
+            errorMsg =
+                'خطا در دریافت محصولات: ${data['error'] ?? 'Unknown error'}';
           });
         }
       } else {
@@ -1626,7 +1769,7 @@ class _ProductsPageState extends State<ProductsPage> {
                               borderRadius: BorderRadius.circular(16),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.grey.withOpacity(0.1),
+                                  color: Colors.grey.withValues(alpha: 0.1),
                                   blurRadius: 8,
                                   offset: const Offset(0, 2),
                                 ),
@@ -1640,11 +1783,8 @@ class _ProductsPageState extends State<ProductsPage> {
                                       top: Radius.circular(16)),
                                   child: product['images'] != null &&
                                           product['images'].isNotEmpty
-                                      ? Image.network(
-                                          product['images'][0]['src'],
+                                      ? buildProductImagePlaceholder(
                                           height: 120,
-                                          width: double.infinity,
-                                          fit: BoxFit.cover,
                                         )
                                       : Container(
                                           height: 120,
@@ -1714,7 +1854,6 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   final TextEditingController _emailController = TextEditingController();
   List<Map<String, dynamic>> reviews = [];
   bool isLoading = false;
-  final int _currentImageIndex = 0;
 
   @override
   void initState() {
@@ -1895,26 +2034,8 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                               ),
                               child: ClipRRect(
                                 borderRadius: BorderRadius.circular(16),
-                                child: Image.network(
-                                  image['src'],
-                                  fit: BoxFit.cover,
-                                  loadingBuilder:
-                                      (context, child, loadingProgress) {
-                                    if (loadingProgress == null) return child;
-                                    return Center(
-                                      child: CircularProgressIndicator(
-                                        value: loadingProgress
-                                                    .expectedTotalBytes !=
-                                                null
-                                            ? loadingProgress
-                                                    .cumulativeBytesLoaded /
-                                                loadingProgress
-                                                    .expectedTotalBytes!
-                                            : null,
-                                      ),
-                                    );
-                                  },
-                                ),
+                                child:
+                                    buildProductImagePlaceholder(height: 300),
                               ),
                             );
                           },
@@ -2143,7 +2264,8 @@ class _ParentCategoryGridState extends State<ParentCategoryGrid> {
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         if (data['success'] == true && data['categories'] != null) {
-          final allCategories = data['categories'] as List;
+          final allCategories =
+              data['categories'] is List ? data['categories'] : [];
 
           // فیلتر کردن فقط دسته‌بندی‌های اصلی (parent = 0 یا null)
           final mainCategoriesOnly = allCategories.where((category) {
@@ -2155,17 +2277,20 @@ class _ParentCategoryGridState extends State<ParentCategoryGrid> {
 
           // فیلتر کردن دسته‌بندی‌های خالی (بدون محصول)
           List nonEmptyCategories = [];
-          for (var category in mainCategoriesOnly) {
+          for (var category in visibleCategories) {
             final categoryId = category['id'];
-            final productsUrl =
-                Uri.parse(ApiService.getCategoryCheckUrl(categoryId.toString()));
+            final productsUrl = Uri.parse(
+                ApiService.getCategoryCheckUrl(categoryId.toString()));
 
             try {
               final productsResponse = await http.get(productsUrl);
               if (productsResponse.statusCode == 200) {
                 final productsData = json.decode(productsResponse.body);
-                if (productsData['success'] == true && productsData['products'] != null) {
-                  final products = productsData['products'] as List;
+                if (productsData['success'] == true &&
+                    productsData['products'] != null) {
+                  final products = productsData['products'] is List
+                      ? productsData['products']
+                      : [];
                   if (products.isNotEmpty) {
                     nonEmptyCategories.add(category);
                   }
@@ -2185,7 +2310,8 @@ class _ParentCategoryGridState extends State<ParentCategoryGrid> {
         } else {
           setState(() {
             isLoading = false;
-            errorMsg = 'خطا در دریافت دسته‌بندی‌ها: ' + (data['error'] ?? 'Unknown error');
+            errorMsg =
+                'خطا در دریافت دسته‌بندی‌ها: ${data['error'] ?? 'Unknown error'}';
           });
         }
       } else {
@@ -2259,7 +2385,7 @@ class _ParentCategoryGridState extends State<ParentCategoryGrid> {
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.grey.withOpacity(0.1),
+                    color: Colors.grey.withValues(alpha: 0.1),
                     blurRadius: 8,
                     offset: const Offset(0, 2),
                   ),
@@ -2271,11 +2397,9 @@ class _ParentCategoryGridState extends State<ParentCategoryGrid> {
                   if (imageUrl != null)
                     ClipRRect(
                       borderRadius: BorderRadius.circular(8),
-                      child: Image.network(
-                        imageUrl,
+                      child: buildProductImagePlaceholder(
                         width: 48,
                         height: 48,
-                        fit: BoxFit.cover,
                       ),
                     )
                   else

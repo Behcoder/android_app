@@ -16,6 +16,33 @@ class _GalleryPageState extends State<GalleryPage>
   bool isLoading = true;
   String? errorMessage;
 
+  // تبدیل URL نسبی یا ناقص به URL کامل قابل استفاده در شبکه
+  String _getFullImageUrl(String? imageUrl) {
+    if (imageUrl == null || imageUrl.isEmpty) return '';
+
+    if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+      return imageUrl;
+    }
+
+    if (imageUrl.startsWith('/api/img-proxy.php')) {
+      return 'https://app.seify.ir$imageUrl';
+    }
+
+    if (imageUrl.startsWith('api/img-proxy.php')) {
+      return 'https://app.seify.ir/$imageUrl';
+    }
+
+    if (imageUrl.startsWith('/')) {
+      return 'https://app.seify.ir$imageUrl';
+    }
+
+    if (imageUrl.startsWith('api/')) {
+      return 'https://app.seify.ir/$imageUrl';
+    }
+
+    return imageUrl;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -65,7 +92,7 @@ class _GalleryPageState extends State<GalleryPage>
         throw Exception('خطا در دریافت تصاویر: ${generalResponse.statusCode}');
       }
     } catch (e) {
-      print('Error loading gallery: $e');
+      debugPrint('Error loading gallery: $e');
       setState(() {
         errorMessage = 'خطا در بارگذاری گالری: $e';
         isLoading = false;
@@ -169,7 +196,7 @@ class _GalleryPageState extends State<GalleryPage>
                                             boxShadow: [
                                               BoxShadow(
                                                 color: Colors.grey
-                                                    .withOpacity(0.3),
+                                                    .withValues(alpha: 0.3),
                                                 blurRadius: 8,
                                                 offset: const Offset(0, 2),
                                               ),
@@ -179,7 +206,7 @@ class _GalleryPageState extends State<GalleryPage>
                                             borderRadius:
                                                 BorderRadius.circular(12),
                                             child: Image.network(
-                                              imageUrl,
+                                              _getFullImageUrl(imageUrl),
                                               fit: BoxFit.cover,
                                               loadingBuilder: (context, child,
                                                   loadingProgress) {
@@ -202,7 +229,7 @@ class _GalleryPageState extends State<GalleryPage>
                                               },
                                               errorBuilder:
                                                   (context, error, stackTrace) {
-                                                print(
+                                                debugPrint(
                                                     'Error loading image: $imageUrl - $error');
                                                 return Container(
                                                   color: Colors.grey[200],
@@ -261,7 +288,7 @@ class _GalleryPageState extends State<GalleryPage>
             tag: imageUrl,
             child: InteractiveViewer(
               child: Image.network(
-                imageUrl,
+                _getFullImageUrl(imageUrl),
                 loadingBuilder: (context, child, loadingProgress) {
                   if (loadingProgress == null) return child;
                   return Center(
